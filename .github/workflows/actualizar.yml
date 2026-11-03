@@ -2,7 +2,7 @@ name: Actualizar datos
 
 on:
   schedule:
-    - cron: "17 10 * * *"   # todos los días a las 7:17 de Argentina (10:17 UTC)
+       - cron: "5 19 * * *"    # todos los días a las 16:05 de Argentina (19:05 UTC), después de que el INDEC publica
   workflow_dispatch:         # botón "Run workflow" para actualizar a mano
 
 permissions:
