@@ -22,6 +22,10 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SALIDA = os.path.join(RAIZ, "site", "data", "datos.json")
 TOKEN = os.environ.get("INDEC_TOKEN", "").strip()
 UA = {"User-Agent": "monitor-economico/1.0 (+netlify)"}
+# El FMI rechaza pedidos que no parecen de un navegador
+NAVEGADOR = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
+             "Accept": "application/json, text/plain, */*", "Accept-Language": "es-AR,es;q=0.9,en;q=0.8",
+             "Referer": "https://www.imf.org/external/datamapper/"}
 errores, avisos = [], []
 
 
@@ -245,12 +249,13 @@ MUNDO = {}
 
 def fmi():
     def leer(ruta):
+        motivo = ""
         for v in ("v1", "v2"):
             try:
-                return get(f"https://www.imf.org/external/datamapper/api/{v}/{ruta}")
-            except Exception:
-                pass
-        raise RuntimeError("FMI no respondió: " + ruta)
+                return get(f"https://www.imf.org/external/datamapper/api/{v}/{ruta}", NAVEGADOR)
+            except Exception as e:
+                motivo = f"{type(e).__name__} {getattr(e, 'code', '')} {e}"
+        raise RuntimeError(f"FMI no respondió ({motivo.strip()}): {ruta}")
     cat = {}
     for grupo in ("regions", "groups"):
         try:
@@ -268,7 +273,7 @@ def fmi():
         try:
             vals = leer(cod + "/" + "/".join(codigos))["values"][cod]
         except Exception as e:
-            errores.append(f"FMI {nombre}: {e}"); continue
+            avisos.append(f"FMI {nombre}: {e}"); continue
         paises = {codigos[c]: {a: v for a, v in sorted(serie.items()) if int(a) >= ANIO_INICIO and v is not None}
                   for c, serie in vals.items() if c in codigos}
         MUNDO["fmi_" + cod] = {"nombre": nombre, "unidad": unidad, "fuente": "FMI (WEO)", "proyeccion_desde": HOY.year, "paises": paises}
@@ -277,10 +282,28 @@ def fmi():
         avisos.append("FMI: no se encontró el código de América Latina en el catálogo")
 
 
+# Si el FMI no responde, la sección se completa con los mismos indicadores del Banco Mundial (sin proyecciones)
+RESPALDO_BM = {"NGDP_RPCH": ("NY.GDP.MKTP.KD.ZG", "Crecimiento del PIB real", "% anual"),
+               "PCPIPCH": ("FP.CPI.TOTL.ZG", "Inflación (promedio anual)", "%"),
+               "LUR": ("SL.UEM.TOTL.ZS", "Desempleo", "% de la población activa"),
+               "PPPPC": ("NY.GDP.PCAP.PP.KD", "PIB per cápita PPA", "USD internacionales constantes")}
+
+
 def banco_mundial():
     codigos = dict(PAISES, LCN="América Latina y el Caribe", WLD="Mundo")
     inds = {"NE.EXP.GNFS.ZS": "Exportaciones", "NE.IMP.GNFS.ZS": "Importaciones"}
+    faltan = {f: v for f, v in RESPALDO_BM.items() if "fmi_" + f not in MUNDO}
+    for f, (cod, nombre, unidad) in faltan.items():
+        inds[cod] = (nombre, unidad, f)
+    if faltan:
+        nombres = [v[1] for v in faltan.values()]
+        errores[:] = [e for e in errores if not any(e.startswith("FMI " + n) for n in nombres)]
+        avisos.append("El FMI no respondió: " + ", ".join(nombres).lower() + " salen del Banco Mundial (sin proyecciones)")
     for cod, nombre in inds.items():
+        unidad, clave = "% del PIB", "bm_" + cod
+        if isinstance(nombre, tuple):
+            nombre, unidad, f = nombre
+            clave = "fmi_" + f          # ocupa el lugar del indicador del FMI en la página
         try:
             url = (f"https://api.worldbank.org/v2/country/{';'.join(codigos)}/indicator/{cod}"
                    f"?format=json&per_page=20000&date={ANIO_INICIO}:{HOY.year}")
@@ -293,7 +316,7 @@ def banco_mundial():
             p = codigos.get(f.get("countryiso3code"))
             if p and f.get("value") is not None:
                 paises.setdefault(p, {})[str(f["date"])] = f["value"]
-        MUNDO["bm_" + cod] = {"nombre": nombre, "unidad": "% del PIB", "fuente": "Banco Mundial", "proyeccion_desde": None,
+        MUNDO[clave] = {"nombre": nombre, "unidad": unidad, "fuente": "Banco Mundial", "proyeccion_desde": None,
                               "paises": {p: dict(sorted(v.items())) for p, v in paises.items()}}
         print(f"  BM {nombre:<42} {len(paises):>5} países/regiones")
 
