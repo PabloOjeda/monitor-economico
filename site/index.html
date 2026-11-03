@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitor Económico Argentino</title>
+<meta name="description" content="Indicadores de la economía argentina actualizados todos los días con datos oficiales y públicos: actividad, inflación, salarios, dólar, pobreza, trabajo y comparación con América Latina y el mundo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f3f5f8; --surface: #fcfcfb; --border: #dfe3e8;
+  --text: #0b0b0b; --text-2: #52514e; --muted: #77756f; --grid: #e7e9ec;
+  --accent: #2a78d6;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --bg: #111111; --surface: #1a1a19; --border: #30302e;
+    --text: #f0efec; --text-2: #c3c2b7; --muted: #9a998f; --grid: #2a2a28;
+    --accent: #3987e5;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111111; --surface: #1a1a19; --border: #30302e;
+  --text: #f0efec; --text-2: #c3c2b7; --muted: #9a998f; --grid: #2a2a28;
+  --accent: #3987e5;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 24px 16px 48px; }
+header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; align-items: flex-end; margin-bottom: 20px; }
+h1 { font-size: clamp(26px, 4vw, 36px); line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.02em; }
+.lead { color: var(--text-2); margin: 0; max-width: 760px; }
+.meta { color: var(--muted); font-size: 14px; text-align: right; }
+.controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+select, button.tab { font: inherit; font-size: 15px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+button.tab[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); font-weight: 600; }
+h2 { font-size: 22px; margin: 36px 0 4px; letter-spacing: -0.01em; }
+.sec-lead { color: var(--text-2); margin: 0 0 16px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+@media (max-width: 560px) { .kpis { grid-template-columns: 1fr 1fr; gap: 10px; } .kpi { padding: 12px; } .kpi .val { font-size: 24px; } }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; min-height: 118px; }
+.kpi .lbl { color: var(--text-2); font-size: 14px; font-weight: 500; }
+.kpi .val { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; margin: 2px 0; font-variant-numeric: tabular-nums; }
+.kpi .sub { color: var(--muted); font-size: 13.5px; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
+.card h3 { font-size: 16.5px; margin: 0; }
+.card .nota { color: var(--muted); font-size: 13.5px; margin: 2px 0 10px; }
+.chart { position: relative; height: 300px; }
+.card.wide { grid-column: 1 / -1; }
+.card.wide .chart { height: 380px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.aviso { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--s4); border-radius: 8px; padding: 10px 14px; color: var(--text-2); font-size: 14px; margin: 0 0 16px; display: none; }
+footer { margin-top: 40px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--border); padding-top: 16px; }
+footer a { color: var(--accent); }
+.vacio { display: flex; height: 100%; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Monitor de la economía argentina</h1>
+      <p class="lead">Actividad, precios, salarios, dólar, pobreza y trabajo con datos oficiales y públicos, actualizados todos los días. Desde 2017, con la comparación contra América Latina y el mundo.</p>
+    </div>
+    <div class="meta">
+      <div id="actualizado">Cargando datos…</div>
+      <div class="controls" style="justify-content:flex-end;margin-top:8px">
+        <label for="desde">Desde</label>
+        <select id="desde"></select>
+      </div>
+    </div>
+  </header>
+
+  <div class="aviso" id="aviso"></div>
+
+  <h2>Hoy</h2>
+  <p class="sec-lead">Último dato disponible de cada indicador y su período.</p>
+  <div class="kpis" id="kpis"></div>
+
+  <h2>Actividad y precios</h2>
+  <p class="sec-lead">Cómo crece la economía y a qué ritmo suben los precios.</p>
+  <div class="grid">
+    <div class="card"><h3>Actividad e inflación</h3><p class="nota">Variación interanual, %</p><div class="chart"><canvas id="c_act_inf"></canvas></div></div>
+    <div class="card"><h3>Inflación mensual</h3><p class="nota">Variación respecto del mes anterior, %</p><div class="chart"><canvas id="c_inf_m"></canvas></div></div>
+    <div class="card"><h3>Actividad por sector</h3><p class="nota" id="nota_sect">Variación interanual del último mes, %</p><div class="chart"><canvas id="c_sect"></canvas></div></div>
+    <div class="card"><h3>Inflación general y de alimentos</h3><p class="nota">Variación interanual, %</p><div class="chart"><canvas id="c_alim"></canvas></div></div>
+  </div>
+
+  <h2>Ingresos y costo de vida</h2>
+  <p class="sec-lead">Si los salarios le ganan o le pierden a la inflación.</p>
+  <div class="grid">
+    <div class="card"><h3>Salario real</h3><p class="nota">Índice de salarios deflactado por IPC, diciembre 2016 = 100</p><div class="chart"><canvas id="c_sal_real"></canvas></div></div>
+    <div class="card"><h3>Canasta básica total y salarios</h3><p class="nota">Variación interanual, %</p><div class="chart"><canvas id="c_cbt_sal"></canvas></div></div>
+    <div class="card"><h3>Pobreza e indigencia</h3><p class="nota">% de personas, por semestre</p><div class="chart"><canvas id="c_pobreza"></canvas></div></div>
+    <div class="card"><h3>Trabajo</h3><p class="nota">Tasas trimestrales, %</p><div class="chart"><canvas id="c_trabajo"></canvas></div></div>
+  </div>
+
+  <h2>Dólar y mercado</h2>
+  <p class="sec-lead">El dólar blue es una cotización informal de mercado, no oficial.</p>
+  <div class="grid">
+    <div class="card"><h3>Dólar, precios y salarios</h3><p class="nota">Primer mes del período elegido = 100</p><div class="chart"><canvas id="c_base100"></canvas></div></div>
+    <div class="card"><h3>Dólar blue: nominal y a precios de hoy</h3><p class="nota">$ por USD, promedio mensual. "A precios de hoy" ajusta por inflación.</p><div class="chart"><canvas id="c_blue_real"></canvas></div></div>
+    <div class="card"><h3>Brecha cambiaria</h3><p class="nota">Dólar blue sobre dólar oficial, %</p><div class="chart"><canvas id="c_brecha"></canvas></div></div>
+    <div class="card"><h3>Riesgo país</h3><p class="nota">Puntos básicos, promedio mensual</p><div class="chart"><canvas id="c_riesgo"></canvas></div></div>
+    <div class="card wide"><h3>Canasta básica total en dólares</h3><p class="nota">Lo que cuesta la canasta de un adulto (GBA), en dólares blue</p><div class="chart"><canvas id="c_cbt_usd"></canvas></div></div>
+  </div>
+
+  <h2>Argentina en el mundo</h2>
+  <p class="sec-lead">Año a año. En los datos del FMI, la línea punteada marca estimaciones y proyecciones. Tocá un país en la leyenda para ocultarlo o mostrarlo.</p>
+  <div class="card wide">
+    <div class="tabs" id="tabs_mundo"></div>
+    <h3 id="t_mundo"></h3><p class="nota" id="n_mundo"></p>
+    <div class="chart"><canvas id="c_mundo"></canvas></div>
+  </div>
+
+  <footer>
+    <p><strong>Fuentes:</strong> <a href="https://api.indec.gob.ar/">INDEC (API de datos)</a> y <a href="https://www.indec.gob.ar/">archivos de series del INDEC</a> ·
+    <a href="https://argentinadatos.com/">ArgentinaDatos</a> (dólar y riesgo país) ·
+    <a href="https://www.imf.org/external/datamapper/">FMI, World Economic Outlook</a> ·
+    <a href="https://data.worldbank.org/">Banco Mundial</a>.</p>
+    <p>Indicadores calculados: salario real, inflación acumulada y anualizada, brecha, dólar a precios de hoy y canasta en dólares. Los datos se actualizan automáticamente todos los días. <a id="link_datos" href="data/datos.json">Descargar los datos (JSON)</a>.</p>
+  </footer>
+</div>
+
+<script>
+// ====================================================================================
+// FUENTE DE LOS DATOS: reemplazá TU_USUARIO por tu usuario de GitHub (ver LEEME, paso 5).
+// Así la página lee los datos que GitHub actualiza todos los días, sin volver a publicar en Netlify.
+const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-economico/main/site/data/datos.json";
+// ====================================================================================
+(async function () {
+  const URL_DATOS = FUENTE_DATOS.includes("TU_USUARIO") || location.hostname === "localhost" ? "data/datos.json" : FUENTE_DATOS;
+  const $ = (id) => document.getElementById(id);
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const nf = (d) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fPct = (v, d = 1, signo = false) => {
+    if (v == null || isNaN(v)) return "s/d";
+    const x = Math.abs(v * 100) < 0.5 * Math.pow(10, -d) ? 0 : v * 100;
+    return (signo && x > 0 ? "+" : "") + nf(d).format(x) + "%";
+  };
+  const fNum = (v, d = 0) => v == null || isNaN(v) ? "s/d" : nf(d).format(v);
+  const per = (k) => {
+    if (!k) return "";
+    if (/^\d{4}-\d{2}$/.test(k)) return MESES[+k.slice(5) - 1] + " " + k.slice(0, 4);
+    if (/-T\d$/.test(k)) return k.slice(-1) + ".º trim " + k.slice(0, 4);
+    if (/-S\d$/.test(k)) return k.slice(-1) + ".º sem " + k.slice(0, 4);
+    return k;
+  };
+
+  let D;
+  try {
+    D = await fetch(URL_DATOS, { cache: "no-store" }).then((r) => { if (!r.ok) throw 0; return r.json(); });
+  } catch (e) {
+    $("actualizado").textContent = "Todavía no hay datos: ejecutá la actualización (ver LEEME).";
+    return;
+  }
+  if (!D.series || !Object.keys(D.series).length) {
+    $("actualizado").textContent = "Todavía no hay datos: ejecutá la actualización (ver LEEME).";
+    return;
+  }
+  $("link_datos").href = URL_DATOS;
+  const fecha = new Date(D.actualizado);
+  $("actualizado").textContent = "Actualizado: " + fecha.toLocaleString("es-AR", { dateStyle: "long", timeStyle: "short" });
+  if (D.errores && D.errores.length) {
+    $("aviso").style.display = "block";
+    $("aviso").textContent = "En la última actualización no respondieron algunas fuentes; se muestran sus datos anteriores: " + D.errores.join(" · ");
+  }
+
+  const S = (id) => (D.series[id] && D.series[id].datos) || {};
+  const V = (id) => (D.derivados && D.derivados[id]) || {};
+  const ult = (o) => { const ks = Object.keys(o).sort(); return ks.length ? [ks[ks.length - 1], o[ks[ks.length - 1]]] : [null, null]; };
+  const hace12 = (o, k) => { if (!k) return null; const a = +k.slice(0, 4) - 1; return o[a + k.slice(4)]; };
+
+  // ---------- selector "Desde"
+  const anioIni = D.anio_inicio || 2017, anioFin = new Date().getFullYear();
+  for (let a = anioIni; a <= anioFin; a++) $("desde").add(new Option(a, a));
+  $("desde").value = anioIni;
+
+  // ---------- tarjetas
+  function kpis() {
+    const t = [];
+    const add = (lbl, val, sub) => t.push(`<div class="kpi"><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="sub">${sub}</div></div>`);
+    let [k, v] = ult(V("emae_ia"));
+    add("Actividad económica (EMAE)", fPct(v, 1, true), `${per(k)} · vs. mismo mes del año anterior`);
+    [k, v] = ult(V("ipc_m"));
+    add("Inflación mensual", fPct(v), `${per(k)}`);
+    [k, v] = ult(V("ipc_ia"));
+    add("Inflación interanual", fPct(v), `${per(k)} · hace un año: ${fPct(hace12(V("ipc_ia"), k))}`);
+    [k, v] = ult(V("ipc_3m_anual"));
+    add("Inflación anualizada (3 meses)", fPct(v), `${per(k)} · ritmo de los últimos 3 meses llevado a un año`);
+    [k, v] = ult(V("ipc_acum_anio"));
+    add("Inflación acumulada del año", fPct(v), `enero a ${per(k)}`);
+    [k, v] = ult(V("salario_real_ia"));
+    add("Salario real", fPct(v, 1, true), `${per(k)} · vs. un año antes, descontada la inflación`);
+    [k, v] = ult(S("desocupacion"));
+    add("Desocupación", v == null ? "s/d" : fNum(v, 1) + "%", `${per(k)} · hace un año: ${hace12(S("desocupacion"), k) == null ? "s/d" : fNum(hace12(S("desocupacion"), k), 1) + "%"}`);
+    [k, v] = ult(S("pobreza"));
+    add("Pobreza (personas)", v == null ? "s/d" : fNum(v, 1) + "%", `${per(k)} · indigencia: ${ult(S("indigencia"))[1] == null ? "s/d" : fNum(ult(S("indigencia"))[1], 1) + "%"}`);
+    const bd = D.series.blue && D.series.blue.ultimo_diario;
+    [k, v] = ult(V("blue_ia"));
+    add("Dólar blue", bd ? "$" + fNum(bd.valor) : "s/d", `${bd ? bd.fecha.split("-").reverse().join("/") : ""} · interanual: ${fPct(v, 1, true)}`);
+    [k, v] = ult(V("brecha"));
+    add("Brecha cambiaria", fPct(v), `${per(k)} · blue vs. oficial`);
+    const rd = D.series.riesgo && D.series.riesgo.ultimo_diario;
+    add("Riesgo país", rd ? fNum(rd.valor) + " pb" : "s/d", rd ? rd.fecha.split("-").reverse().join("/") : "");
+    [k, v] = ult(V("cbt_usd"));
+    add("Canasta básica en dólares", v == null ? "s/d" : "US$ " + fNum(v), `${per(k)} · por adulto, en dólares blue`);
+    const pob = S("poblacion"), a = String(new Date().getFullYear());
+    add("Población", pob[a] ? fNum(pob[a] / 1e6, 1) + " millones" : "s/d", `proyección INDEC ${a}`);
+    $("kpis").innerHTML = t.join("");
+  }
+
+  // ---------- gráficos
+  const charts = {};
+  const desde = () => +$("desde").value;
+  const filtra = (o) => Object.fromEntries(Object.entries(o).filter(([k]) => +k.slice(0, 4) >= desde()));
+  function base() {
+    return {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "top", align: "start", labels: { color: css("--text-2"), boxWidth: 12, boxHeight: 12, usePointStyle: true, pointStyle: "rectRounded", font: { size: 13 } } },
+        tooltip: { backgroundColor: css("--surface"), titleColor: css("--text"), bodyColor: css("--text-2"), borderColor: css("--border"), borderWidth: 1, padding: 10 }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: css("--muted"), maxRotation: 0, autoSkipPadding: 18, font: { size: 12 } }, border: { color: css("--border") } },
+        y: { grid: { color: css("--grid") }, ticks: { color: css("--muted"), font: { size: 12 } }, border: { display: false } }
+      }
+    };
+  }
+  function vacio(el, sinDatos) {
+    let m = el.parentElement.querySelector(".vacio");
+    if (sinDatos && !m) { m = document.createElement("div"); m.className = "vacio"; m.textContent = "Sin datos para este período"; el.parentElement.appendChild(m); }
+    if (m) m.style.display = sinDatos ? "flex" : "none";
+    el.style.display = sinDatos ? "none" : "";
+  }
+  function dibujar(id, tipo, series, fmt, extra = {}) {
+    const el = $(id);
+    if (!el) return;
+    if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+    const keys = extra.horizontal ? Object.keys(series[0].data) : [...new Set(series.flatMap((s) => Object.keys(s.data)))].sort();
+    vacio(el, !keys.length);
+    if (!keys.length) return;
+    const opt = base();
+    opt.scales.y.ticks.callback = (v) => fmt(v);
+    opt.plugins.tooltip.callbacks = { label: (c) => ` ${c.dataset.label}: ${c.parsed[extra.horizontal ? "x" : "y"] == null ? "s/d" : fmt(c.parsed[extra.horizontal ? "x" : "y"])}` };
+    if (series.length === 1) opt.plugins.legend.display = false;
+    if (extra.horizontal) {
+      opt.indexAxis = "y";
+      opt.scales.x.ticks.callback = (v) => fmt(v);
+      opt.scales.x.grid = { color: css("--grid") };
+      opt.scales.y.grid = { display: false };
+      opt.scales.y.ticks.callback = function (v) { const l = this.getLabelForValue(v); return l.length > 28 ? l.slice(0, 27) + "…" : l; };
+      opt.interaction = { mode: "nearest", intersect: true };
+    }
+    charts[id] = new Chart(el, {
+      type: tipo,
+      data: {
+        labels: extra.horizontal ? keys : keys.map(per),
+        datasets: series.map((s) => ({
+          label: s.label, data: keys.map((k) => s.data[k] ?? null), spanGaps: true,
+          borderColor: css(s.color), backgroundColor: css(s.color),
+          borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.25,
+          borderRadius: tipo === "bar" ? 4 : 0, maxBarThickness: 28
+        }))
+      },
+      options: opt
+    });
+  }
+
+  function graficos() {
+    const pct = (v) => fPct(v, 0), pct1 = (v) => fPct(v, 1);
+    dibujar("c_act_inf", "line", [
+      { label: "Actividad (EMAE)", data: filtra(V("emae_ia")), color: "--s1" },
+      { label: "Inflación (IPC)", data: filtra(V("ipc_ia")), color: "--s2" }], pct);
+    dibujar("c_inf_m", "bar", [{ label: "Inflación mensual", data: filtra(V("ipc_m")), color: "--s2" }], pct1);
+    const sect = V("sectores_ult");
+    const pares = Object.entries((sect && sect.valores) || {}).sort((a, b) => b[1] - a[1]);
+    $("nota_sect").textContent = "Variación interanual, " + (sect && sect.mes ? per(sect.mes) : "último mes") + ", %";
+    dibujar("c_sect", "bar", [{ label: "Variación interanual", data: Object.fromEntries(pares), color: "--s1" }], pct1, { horizontal: true });
+    dibujar("c_alim", "line", [
+      { label: "Nivel general", data: filtra(V("ipc_ia")), color: "--s2" },
+      { label: "Alimentos y bebidas", data: filtra(V("alimentos_ia")), color: "--s4" }], pct);
+    dibujar("c_sal_real", "line", [{ label: "Salario real", data: filtra(V("salario_real")), color: "--s1" }], (v) => fNum(v));
+    dibujar("c_cbt_sal", "line", [
+      { label: "Canasta básica total", data: filtra(V("cbt_ia")), color: "--s2" },
+      { label: "Salarios", data: filtra(V("salarios_ia")), color: "--s1" }], pct);
+    dibujar("c_pobreza", "bar", [
+      { label: "Pobreza", data: filtra(S("pobreza")), color: "--s1" },
+      { label: "Indigencia", data: filtra(S("indigencia")), color: "--s2" }], (v) => fNum(v, 0) + "%");
+    dibujar("c_trabajo", "line", [
+      { label: "Desocupación", data: filtra(S("desocupacion")), color: "--s1" },
+      { label: "Subocupación", data: filtra(S("subocupacion")), color: "--s2" },
+      { label: "Empleo informal", data: filtra(S("informal")), color: "--s3" }], (v) => fNum(v, 0) + "%");
+    // base 100 recalculada desde el primer mes elegido
+    const rebase = (o) => { const f = filtra(o), ks = Object.keys(f).sort(); return ks.length ? Object.fromEntries(ks.map((k) => [k, f[k] / f[ks[0]] * 100])) : {}; };
+    dibujar("c_base100", "line", [
+      { label: "Dólar blue", data: rebase(S("blue")), color: "--s1" },
+      { label: "Precios (IPC)", data: rebase(S("ipc")), color: "--s2" },
+      { label: "Salarios", data: rebase(S("salarios")), color: "--s3" }], (v) => fNum(v));
+    dibujar("c_blue_real", "line", [
+      { label: "Nominal", data: filtra(S("blue")), color: "--s1" },
+      { label: "A precios de hoy", data: filtra(V("blue_real")), color: "--s2" }], (v) => "$" + fNum(v));
+    dibujar("c_brecha", "line", [{ label: "Brecha", data: filtra(V("brecha")), color: "--s7" }], pct);
+    dibujar("c_riesgo", "line", [{ label: "Riesgo país", data: filtra(S("riesgo")), color: "--s8" }], (v) => fNum(v));
+    dibujar("c_cbt_usd", "line", [{ label: "Canasta básica total", data: filtra(V("cbt_usd")), color: "--s3" }], (v) => "US$ " + fNum(v));
+  }
+
+  // ---------- Argentina en el mundo
+  const ORDEN = ["Argentina", "América Latina y el Caribe", "Mundo", "Brasil", "Chile", "Uruguay", "México"];
+  const COLOR = { "Argentina": "--s1", "América Latina y el Caribe": "--s2", "Mundo": "--s3", "Brasil": "--s4", "Chile": "--s5", "Uruguay": "--s7", "México": "--s6" };
+  const TABS = ["fmi_NGDP_RPCH", "fmi_PCPIPCH", "fmi_LUR", "fmi_PPPPC", "fmi_GGXWDG_NGDP", "fmi_BCA_NGDPD", "bm_NE.EXP.GNFS.ZS", "bm_NE.IMP.GNFS.ZS"]
+    .filter((k) => D.mundo && D.mundo[k]);
+  let tabSel = TABS[0];
+  function tabs() {
+    $("tabs_mundo").innerHTML = TABS.map((k) => `<button class="tab" data-k="${k}" aria-pressed="${k === tabSel}">${D.mundo[k].nombre}</button>`).join("");
+    $("tabs_mundo").querySelectorAll("button").forEach((b) => b.onclick = () => { tabSel = b.dataset.k; tabs(); mundo(); });
+  }
+  function mundo() {
+    if (!tabSel) { vacio($("c_mundo"), true); return; }
+    const m = D.mundo[tabSel], proj = m.proyeccion_desde;
+    $("t_mundo").textContent = m.nombre;
+    $("n_mundo").textContent = m.unidad + " · " + m.fuente + (proj ? ` · desde ${proj}: estimación y proyección del FMI (línea punteada)` : "");
+    const paises = ORDEN.filter((p) => m.paises[p]);
+    const anios = [...new Set(paises.flatMap((p) => Object.keys(m.paises[p])))].filter((a) => +a >= desde()).sort();
+    const pctLike = m.unidad.includes("%");
+    const fmt = (v) => pctLike ? fNum(v, Math.abs(v) < 10 ? 1 : 0) + "%" : fNum(v);
+    if (charts.c_mundo) charts.c_mundo.destroy();
+    const opt = base();
+    opt.scales.y.ticks.callback = (v) => fmt(v);
+    opt.plugins.tooltip.callbacks = { label: (c) => ` ${c.dataset.label}: ${c.parsed.y == null ? "s/d" : fmt(c.parsed.y)}${proj && +c.label >= proj ? " (proy.)" : ""}` };
+    charts.c_mundo = new Chart($("c_mundo"), {
+      type: "line",
+      data: {
+        labels: anios,
+        datasets: paises.map((p) => ({
+          label: p, data: anios.map((a) => m.paises[p][a] ?? null), spanGaps: true,
+          borderColor: css(COLOR[p]), backgroundColor: css(COLOR[p]),
+          borderWidth: p === "Argentina" ? 3 : 2, pointRadius: 2.5, pointHoverRadius: 5, tension: 0.2,
+          segment: { borderDash: (ctx) => proj && +anios[ctx.p1DataIndex] >= proj ? [6, 4] : undefined }
+        }))
+      },
+      options: opt
+    });
+  }
+
+  function todo() { kpis(); graficos(); mundo(); }
+  tabs(); todo();
+  $("desde").onchange = () => { graficos(); mundo(); };
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", todo);
+})();
+</script>
+</body>
+</html>
