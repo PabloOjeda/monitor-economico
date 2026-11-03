@@ -243,7 +243,8 @@ def riesgo_pais():
 
 
 # ---------------------------------------------------------------- FMI y Banco Mundial
-PAISES = {"ARG": "Argentina", "BRA": "Brasil", "CHL": "Chile", "URY": "Uruguay", "MEX": "México"}
+PAISES = {"ARG": "Argentina", "BRA": "Brasil", "CHL": "Chile", "URY": "Uruguay", "MEX": "México",
+          "COL": "Colombia", "PER": "Perú", "PRY": "Paraguay", "BOL": "Bolivia", "ECU": "Ecuador"}
 MUNDO = {}
 
 
@@ -268,57 +269,146 @@ def fmi():
     codigos = dict(PAISES, **{mundo: "Mundo"}, **({latam: "América Latina y el Caribe"} if latam else {}))
     inds = {"NGDP_RPCH": ("Crecimiento del PIB real", "% anual"), "PCPIPCH": ("Inflación (promedio anual)", "%"),
             "LUR": ("Desempleo", "% de la población activa"), "PPPPC": ("PIB per cápita PPA", "USD internacionales"),
-            "GGXWDG_NGDP": ("Deuda pública bruta", "% del PIB"), "BCA_NGDPD": ("Cuenta corriente", "% del PIB")}
+            "GGXWDG_NGDP": ("Deuda pública bruta", "% del PIB"), "BCA_NGDPD": ("Cuenta corriente (FMI)", "% del PIB")}
+    mejor = {"NGDP_RPCH": "alto", "PCPIPCH": "bajo", "LUR": "bajo", "PPPPC": "alto", "GGXWDG_NGDP": "bajo", "BCA_NGDPD": "alto"}
     for cod, (nombre, unidad) in inds.items():
         try:
             vals = leer(cod + "/" + "/".join(codigos))["values"][cod]
         except Exception as e:
             avisos.append(f"FMI {nombre}: {e}"); continue
-        paises = {codigos[c]: {a: v for a, v in sorted(serie.items()) if int(a) >= ANIO_INICIO and v is not None}
+        paises = {codigos[c]: {a: v for a, v in sorted(serie.items()) if int(a) >= 2000 and v is not None}
                   for c, serie in vals.items() if c in codigos}
-        MUNDO["fmi_" + cod] = {"nombre": nombre, "unidad": unidad, "fuente": "FMI (WEO)", "proyeccion_desde": HOY.year, "paises": paises}
+        MUNDO["fmi_" + cod] = {"nombre": nombre, "unidad": unidad, "fuente": "FMI (WEO)", "proyeccion_desde": HOY.year,
+                               "categoria": "Macroeconomía", "mejor": mejor[cod], "paises": paises}
         print(f"  FMI {nombre:<41} {len(paises):>5} países/regiones")
     if not latam:
         avisos.append("FMI: no se encontró el código de América Latina en el catálogo")
 
 
 # Si el FMI no responde, la sección se completa con los mismos indicadores del Banco Mundial (sin proyecciones)
-RESPALDO_BM = {"NGDP_RPCH": ("NY.GDP.MKTP.KD.ZG", "Crecimiento del PIB real", "% anual"),
-               "PCPIPCH": ("FP.CPI.TOTL.ZG", "Inflación (promedio anual)", "%"),
-               "LUR": ("SL.UEM.TOTL.ZS", "Desempleo", "% de la población activa"),
-               "PPPPC": ("NY.GDP.PCAP.PP.KD", "PIB per cápita PPA", "USD internacionales constantes")}
+RESPALDO_BM = {"NGDP_RPCH": ("NY.GDP.MKTP.KD.ZG", "Crecimiento del PIB real", "% anual", "alto"),
+               "PCPIPCH": ("FP.CPI.TOTL.ZG", "Inflación (promedio anual)", "%", "bajo"),
+               "LUR": ("SL.UEM.TOTL.ZS", "Desempleo", "% de la población activa", "bajo"),
+               "PPPPC": ("NY.GDP.PCAP.PP.KD", "PIB per cápita PPA", "USD internacionales constantes", "alto")}
+
+# Indicadores del Banco Mundial: código -> (nombre, unidad, categoría, qué es mejor: "alto", "bajo" o None)
+INDS_BM = {
+    "NE.RSB.GNFS.ZS": ("Balanza de bienes y servicios", "% del PIB", "Comercio y cuentas externas", "alto"),
+    "BN.CAB.XOKA.GD.ZS": ("Cuenta corriente", "% del PIB", "Comercio y cuentas externas", "alto"),
+    "NE.EXP.GNFS.ZS": ("Exportaciones", "% del PIB", "Comercio y cuentas externas", "alto"),
+    "NE.IMP.GNFS.ZS": ("Importaciones", "% del PIB", "Comercio y cuentas externas", None),
+    "TG.VAL.TOTL.GD.ZS": ("Comercio de mercancías (apertura)", "% del PIB", "Comercio y cuentas externas", "alto"),
+    "TX.VAL.FOOD.ZS.UN": ("Exportaciones de alimentos", "% de las exportaciones", "Comercio y cuentas externas", None),
+    "TX.VAL.FUEL.ZS.UN": ("Exportaciones de combustibles", "% de las exportaciones", "Comercio y cuentas externas", None),
+    "TX.VAL.TECH.MF.ZS": ("Exportaciones de alta tecnología", "% de las manufacturas", "Comercio y cuentas externas", "alto"),
+    "BX.KLT.DINV.WD.GD.ZS": ("Inversión extranjera directa", "% del PIB", "Comercio y cuentas externas", "alto"),
+    "FI.RES.TOTL.MO": ("Reservas", "meses de importaciones", "Comercio y cuentas externas", "alto"),
+    "SI.POV.GINI": ("Índice de Gini", "0 = igualdad, 100 = desigualdad", "Desigualdad y pobreza", "bajo"),
+    "SI.POV.DDAY": ("Pobreza extrema (línea internacional)", "% de la población", "Desigualdad y pobreza", "bajo"),
+    "SI.POV.UMIC": ("Pobreza (línea de país de ingreso medio-alto)", "% de la población", "Desigualdad y pobreza", "bajo"),
+    "SI.DST.10TH.10": ("Ingreso del 10% más rico", "% del ingreso total", "Desigualdad y pobreza", "bajo"),
+    "SI.DST.FRST.20": ("Ingreso del 20% más pobre", "% del ingreso total", "Desigualdad y pobreza", "alto"),
+    "HD.HCI.OVRL": ("Índice de capital humano", "0 a 1", "Educación", "alto"),
+    "SE.LPV.PRIM": ("Pobreza de aprendizaje", "% de chicos de 10 años", "Educación", "bajo"),
+    "SE.XPD.TOTL.GD.ZS": ("Gasto en educación", "% del PIB", "Educación", "alto"),
+    "SE.TER.ENRR": ("Matrícula terciaria y universitaria", "% bruto", "Educación", "alto"),
+    "SE.SEC.CMPT.LO.ZS": ("Finalización del secundario inferior", "% del grupo de edad", "Educación", "alto"),
+    "SP.DYN.TFRT.IN": ("Fecundidad", "hijos por mujer", "Demografía y salud", None),
+    "SP.DYN.LE00.IN": ("Esperanza de vida", "años", "Demografía y salud", "alto"),
+    "SP.DYN.IMRT.IN": ("Mortalidad infantil", "por 1.000 nacidos vivos", "Demografía y salud", "bajo"),
+    "SP.POP.65UP.TO.ZS": ("Población de 65 años o más", "% de la población", "Demografía y salud", None),
+    "SH.XPD.CHEX.GD.ZS": ("Gasto en salud", "% del PIB", "Demografía y salud", None),
+    "FS.AST.PRVT.GD.ZS": ("Crédito al sector privado", "% del PIB", "Inversión, crédito e innovación", "alto"),
+    "NE.GDI.TOTL.ZS": ("Inversión total", "% del PIB", "Inversión, crédito e innovación", "alto"),
+    "GB.XPD.RSDV.GD.ZS": ("Gasto en investigación y desarrollo", "% del PIB", "Inversión, crédito e innovación", "alto"),
+    "IT.NET.USER.ZS": ("Usuarios de internet", "% de la población", "Inversión, crédito e innovación", "alto"),
+    "SL.TLF.CACT.FE.ZS": ("Participación laboral femenina", "% de mujeres de 15 años o más", "Trabajo", "alto"),
+    "SL.UEM.1524.ZS": ("Desempleo juvenil", "% de 15 a 24 años", "Trabajo", "bajo"),
+    "RL.EST": ("Estado de derecho", "-2,5 a +2,5", "Instituciones", "alto"),
+    "CC.EST": ("Control de la corrupción", "-2,5 a +2,5", "Instituciones", "alto"),
+    "AG.YLD.CREL.KG": ("Rinde de cereales", "kg por hectárea", "Agro", "alto"),
+    "AG.LND.ARBL.ZS": ("Tierra cultivable", "% de la superficie", "Agro", None),
+    "NV.AGR.TOTL.ZS": ("Agro, silvicultura y pesca", "% del PIB", "Agro", None),
+}
 
 
 def banco_mundial():
     codigos = dict(PAISES, LCN="América Latina y el Caribe", WLD="Mundo")
-    inds = {"NE.EXP.GNFS.ZS": "Exportaciones", "NE.IMP.GNFS.ZS": "Importaciones"}
+    pedidos = {cod: ("bm_" + cod,) + v for cod, v in INDS_BM.items()}
     faltan = {f: v for f, v in RESPALDO_BM.items() if "fmi_" + f not in MUNDO}
-    for f, (cod, nombre, unidad) in faltan.items():
-        inds[cod] = (nombre, unidad, f)
+    for f, (cod, nombre, unidad, mejor) in faltan.items():
+        pedidos[cod] = ("fmi_" + f, nombre, unidad, "Macroeconomía", mejor)   # ocupa el lugar del indicador del FMI
     if faltan:
         nombres = [v[1] for v in faltan.values()]
         errores[:] = [e for e in errores if not any(e.startswith("FMI " + n) for n in nombres)]
         avisos.append("El FMI no respondió: " + ", ".join(nombres).lower() + " salen del Banco Mundial (sin proyecciones)")
-    for cod, nombre in inds.items():
-        unidad, clave = "% del PIB", "bm_" + cod
-        if isinstance(nombre, tuple):
-            nombre, unidad, f = nombre
-            clave = "fmi_" + f          # ocupa el lugar del indicador del FMI en la página
+    ok = 0
+    for cod, (clave, nombre, unidad, categoria, mejor) in pedidos.items():
         try:
             url = (f"https://api.worldbank.org/v2/country/{';'.join(codigos)}/indicator/{cod}"
-                   f"?format=json&per_page=20000&date={ANIO_INICIO}:{HOY.year}")
+                   f"?format=json&per_page=20000&date=2000:{HOY.year}")
             r = get(url)
-            filas = r[1] if len(r) > 1 and r[1] else []
+            filas = r[1] if isinstance(r, list) and len(r) > 1 and r[1] else []
         except Exception as e:
-            errores.append(f"Banco Mundial {nombre}: {e}"); continue
+            avisos.append(f"Banco Mundial {nombre}: {e}"); continue
         paises = {}
         for f in filas:
             p = codigos.get(f.get("countryiso3code"))
             if p and f.get("value") is not None:
                 paises.setdefault(p, {})[str(f["date"])] = f["value"]
+        if not paises:
+            avisos.append(f"Banco Mundial {nombre}: sin datos"); continue
+        ok += 1
         MUNDO[clave] = {"nombre": nombre, "unidad": unidad, "fuente": "Banco Mundial", "proyeccion_desde": None,
-                              "paises": {p: dict(sorted(v.items())) for p, v in paises.items()}}
-        print(f"  BM {nombre:<42} {len(paises):>5} países/regiones")
+                        "categoria": categoria, "mejor": mejor, "paises": {p: dict(sorted(v.items())) for p, v in paises.items()}}
+    print(f"  {'Banco Mundial':<45} {ok:>5} indicadores")
+    if ok == 0:
+        errores.append("Banco Mundial: no respondió")
+
+
+# ---------------------------------------------------------------- BCRA (API pública, sin token)
+def bcra():
+    base = "https://api.bcra.gob.ar/estadisticas/v4.0/monetarias"
+    try:
+        lista = get(base).get("results", [])
+    except Exception as e:
+        lista = []
+        avisos.append(f"BCRA catálogo: {e}")
+    def buscar(*palabras, excluir=()):
+        for v in lista:
+            d = txt(v.get("descripcion"))
+            if all(p in d for p in palabras) and not any(x in d for x in excluir):
+                return v.get("idVariable")
+        return None
+    pedidos = {"reservas": (buscar("reservas internacionales") or 1, "Reservas internacionales del BCRA", "millones de USD"),
+               "base_monetaria": (buscar("base monetaria", excluir=("var", "promedio")), "Base monetaria", "millones de $"),
+               "mayorista": (buscar("tipo de cambio mayorista") or buscar("a3500"), "Dólar mayorista oficial (A3500)", "$ por USD")}
+    for id_, (var, nombre, unidad) in pedidos.items():
+        if not var:
+            avisos.append(f"BCRA: no se encontró la variable {nombre}"); continue
+        try:
+            diario, offset = {}, 0
+            while True:
+                r = get(f"{base}/{var}?desde={ANIO_INICIO}-01-01&hasta={HOY.isoformat()}&limit=3000&offset={offset}")
+                res = r.get("results") or []
+                det = res[0].get("detalle", []) if res and isinstance(res[0], dict) and "detalle" in res[0] else res
+                for f in det:
+                    v = num(f.get("valor"))
+                    if v is not None and f.get("fecha"):
+                        diario[str(f["fecha"])[:10]] = v
+                if len(det) < 3000:
+                    break
+                offset += 3000
+            diario = dict(sorted(diario.items()))
+            mensual = promedio_por([{"f": k, "v": v} for k, v in diario.items()], lambda x: x["f"][:7], lambda x: x["v"])
+            guardar(id_, nombre, unidad, "M", "BCRA", mensual)
+            S[id_]["diario"] = diario
+            if diario:
+                u = max(diario)
+                S[id_]["ultimo_diario"] = {"fecha": u, "valor": diario[u]}
+        except Exception as e:
+            errores.append(f"BCRA {nombre}: {type(e).__name__}: {e}")
+            print(f"  !! BCRA {nombre}: {e}")
 
 
 # ---------------------------------------------------------------- indicadores derivados
@@ -390,7 +480,7 @@ def main():
               ("Población", poblacion), ("Salarios", salarios),
               ("Dólar blue", dolar("blue", "blue", "Dólar blue")),
               ("Dólar oficial", dolar("oficial", "oficial", "Dólar oficial")),
-              ("Riesgo país", riesgo_pais), ("FMI", fmi), ("Banco Mundial", banco_mundial)]
+              ("Riesgo país", riesgo_pais), ("BCRA", bcra), ("FMI", fmi), ("Banco Mundial", banco_mundial)]
     for nombre, fn in tareas:
         intentar(nombre, fn)
     derivados = derivar()
@@ -409,6 +499,15 @@ def main():
         except Exception:
             pass
         nuevo["derivados"] = derivar_desde(nuevo["series"])
+    def redondear(x):
+        if isinstance(x, float):
+            return float(f"{x:.6g}")
+        if isinstance(x, dict):
+            return {k: redondear(v) for k, v in x.items()}
+        if isinstance(x, list):
+            return [redondear(v) for v in x]
+        return x
+    nuevo = redondear(nuevo)
     os.makedirs(os.path.dirname(SALIDA), exist_ok=True)
     json.dump(nuevo, open(SALIDA, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     print(f"\nListo: {SALIDA}")
