@@ -450,6 +450,16 @@ def derivar():
         if ks:
             D[i] = {p: src[p] / src[ks[0]] * 100 for p in ks}
     # sectores: variación interanual del último mes común
+    # inflación anual de cada año completo: diciembre a diciembre y promedio anual
+    D["ipc_dic_dic"], D["ipc_promedio_anual"] = {}, {}
+    anios = sorted({int(p[:4]) for p in ipc_})
+    for a in anios:
+        if f"{a}-12" in ipc_ and f"{a - 1}-12" in ipc_:
+            D["ipc_dic_dic"][str(a)] = ipc_[f"{a}-12"] / ipc_[f"{a - 1}-12"] - 1
+        act = [ipc_.get(f"{a}-{m:02d}") for m in range(1, 13)]
+        ant = [ipc_.get(f"{a - 1}-{m:02d}") for m in range(1, 13)]
+        if all(act) and all(ant):
+            D["ipc_promedio_anual"][str(a)] = sum(act) / sum(ant) - 1
     sec = S.get("emae_sectores", {}).get("sectores", {})
     ult = None
     vs = {}
@@ -484,6 +494,7 @@ def main():
     for nombre, fn in tareas:
         intentar(nombre, fn)
     derivados = derivar()
+    completar_inflacion(derivados)
     nuevo = {"actualizado": datetime.now(timezone.utc).isoformat(timespec="minutes"),
              "anio_inicio": ANIO_INICIO, "series": S, "derivados": derivados, "mundo": MUNDO,
              "errores": errores, "avisos": avisos}
@@ -515,6 +526,21 @@ def main():
     # Falla la corrida solo si no se pudo bajar casi nada
     if len(S) < 5:
         sys.exit(1)
+
+
+def completar_inflacion(D):
+    m = MUNDO.get("fmi_PCPIPCH")
+    if not m or m.get("fuente") != "Banco Mundial":
+        return
+    ar = m["paises"].setdefault("Argentina", {})
+    sumados = []
+    for a, v in D.get("ipc_promedio_anual", {}).items():
+        if a not in ar:
+            ar[a] = v * 100
+            sumados.append(a)
+    if sumados:
+        m["paises"]["Argentina"] = dict(sorted(ar.items()))
+        m["nota"] = "Argentina " + ", ".join(sorted(sumados)) + ": promedio anual calculado con el IPC del INDEC (el Banco Mundial todavía no lo publicó)"
 
 
 def derivar_desde(series):
