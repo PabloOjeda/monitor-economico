@@ -2,7 +2,9 @@ name: Actualizar datos
 
 on:
   schedule:
-       - cron: "5 19 * * *"    # todos los días a las 16:05 de Argentina (19:05 UTC), después de que el INDEC publica
+    - cron: "3 16 * * *"    # 13:03 de Argentina (16:03 UTC): dólar, riesgo país y BCRA del día anterior
+    - cron: "17 19 * * *"   # 16:17 de Argentina (19:17 UTC): después de que el INDEC publica
+    - cron: "43 23 * * *"   # 20:43 de Argentina (23:43 UTC): respaldo por si GitHub atrasa las anteriores
   workflow_dispatch:         # botón "Run workflow" para actualizar a mano
 
 permissions:
@@ -24,6 +26,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase --autostash || true
           git add site/data/datos.json
-          git diff --cached --quiet || git commit -m "Actualizar datos $(date -u +%Y-%m-%d)"
+          git diff --cached --quiet || git commit -m "Actualizar datos $(date -u +%Y-%m-%dT%H:%MZ)"
           git push
