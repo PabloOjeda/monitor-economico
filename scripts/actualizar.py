@@ -30,11 +30,11 @@ errores, avisos = [], []
 
 
 # ---------------------------------------------------------------- utilidades
-def get(url, headers=None, intentos=3, texto=False):
+def get(url, headers=None, intentos=3, texto=False, espera=60):
     h = dict(UA, **(headers or {}))
     for i in range(intentos):
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=60) as r:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=espera) as r:
                 b = r.read()
                 return b.decode("utf-8-sig", errors="replace") if texto else json.loads(b.decode("utf-8-sig"))
         except urllib.error.HTTPError as e:
@@ -46,15 +46,27 @@ def get(url, headers=None, intentos=3, texto=False):
         time.sleep(3 * (i + 1))
 
 
+FALLAS_INDEC = [0]
+
+
 def indec(endpoint, **filtros):
-    """Recorre todas las páginas de 1000 filas de la API del INDEC."""
+    """Recorre todas las páginas de 1000 filas de la API del INDEC.
+    Si la API falla en 2 series seguidas, se saltean las demás (sus datos anteriores se conservan)
+    para que la corrida no tarde 15 minutos esperando a un servidor caído."""
     if not TOKEN:
         raise RuntimeError("falta INDEC_TOKEN")
+    if FALLAS_INDEC[0] >= 2:
+        raise RuntimeError("API del INDEC sin respuesta; se omite esta serie")
     filas, offset = [], 0
     while True:
         q = dict(filtros, limit=1000, offset=offset)
         url = "https://api.indec.gob.ar/v1/" + endpoint + "?" + urllib.parse.urlencode(q, safe="*.,()")
-        pag = get(url, {"Authorization": "Bearer " + TOKEN})
+        try:
+            pag = get(url, {"Authorization": "Bearer " + TOKEN}, intentos=2, espera=40)
+        except Exception:
+            FALLAS_INDEC[0] += 1
+            raise
+        FALLAS_INDEC[0] = 0
         filas += pag
         if len(pag) < 1000:
             return filas
@@ -523,6 +535,16 @@ def main():
     json.dump(nuevo, open(SALIDA, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     print(f"\nListo: {SALIDA}")
     print("Errores:" if errores else "Sin errores.", *errores, sep="\n  ")
+    # Registro para GitHub: errores.txt (lo usa el aviso por mail) y el resumen de la corrida
+    with open(os.path.join(RAIZ, "errores.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(errores))
+    resumen = os.environ.get("GITHUB_STEP_SUMMARY")
+    if resumen:
+        with open(resumen, "a", encoding="utf-8") as f:
+            f.write("## Actualización del monitor\n\n")
+            f.write("Sin errores.\n" if not errores else "Fuentes que no respondieron (se conservaron sus datos anteriores):\n\n" + "".join(f"- {e}\n" for e in errores))
+            if avisos:
+                f.write("\nAvisos:\n\n" + "".join(f"- {a}\n" for a in avisos))
     # Falla la corrida solo si no se pudo bajar casi nada
     if len(S) < 5:
         sys.exit(1)
