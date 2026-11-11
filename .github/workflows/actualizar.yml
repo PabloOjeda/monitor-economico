@@ -13,6 +13,7 @@ permissions:
 jobs:
   actualizar:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -30,3 +31,11 @@ jobs:
           git add site/data/datos.json
           git diff --cached --quiet || git commit -m "Actualizar datos $(date -u +%Y-%m-%dT%H:%MZ)"
           git push
+      - name: Avisar por mail si alguna fuente no respondió
+        run: |
+          if [ -s errores.txt ]; then
+            echo "Estas fuentes no respondieron (la página conserva sus datos anteriores):"
+            cat errores.txt
+            exit 1
+          fi
+          echo "Todas las fuentes respondieron."
