@@ -83,7 +83,6 @@ table.rank tr.fila:hover td { background: var(--bg); }
 table.rank .num { text-align: right; white-space: nowrap; }
 table.rank .chico { color: var(--muted); font-size: 12.5px; }
 .estado { white-space: nowrap; font-weight: 600; }
-.aviso { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--s4); border-radius: 8px; padding: 10px 14px; color: var(--text-2); font-size: 14px; margin: 0 0 14px; display: none; }
 footer { margin-top: 36px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--border); padding-top: 16px; }
 footer a { color: var(--accent); }
 .vacio { display: flex; height: 100%; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; text-align: center; }
@@ -104,8 +103,6 @@ footer a { color: var(--accent); }
       </div>
     </div>
   </header>
-
-  <div class="aviso" id="aviso"></div>
 
   <h2>Hoy</h2>
   <p class="sec-lead">Último dato disponible de cada indicador y su período.</p>
@@ -182,10 +179,6 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
   $("link_datos").href = URL_DATOS;
   const fecha = new Date(D.actualizado);
   $("actualizado").textContent = "Actualizado: " + fecha.toLocaleString("es-AR", { dateStyle: "long", timeStyle: "short" });
-  if (D.errores && D.errores.length) {
-    $("aviso").style.display = "block";
-    $("aviso").textContent = "En la última actualización no respondieron algunas fuentes; se muestran sus datos anteriores: " + D.errores.join(" · ");
-  }
 
   const S = (id) => (D.series[id] && D.series[id].datos) || {};
   const V = (id) => (D.derivados && D.derivados[id]) || {};
