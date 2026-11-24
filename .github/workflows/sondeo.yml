@@ -1,0 +1,35 @@
+name: Sondeo de fuentes (temporal)
+on:
+  push:
+    branches: [sondeo-fuentes]
+jobs:
+  sondeo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probar fuentes nuevas
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request
+          UA={"User-Agent":"monitor-economico/1.0"}
+          def get(u):
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=40) as r:
+                      return r.status, r.read().decode("utf-8","replace")
+              except Exception as e:
+                  return getattr(e,"code",None), str(e)
+          s,t=get("https://api.bcra.gob.ar/estadisticas/v4.0/monetarias")
+          print("BCRA catalogo", s)
+          try:
+              for v in json.loads(t)["results"]:
+                  print("  BCRA", v.get("idVariable"), "|", v.get("descripcion"), "|", v.get("ultFechaInformada") or v.get("fecha"), "|", v.get("ultValorInformado") or v.get("valor"))
+          except Exception as e: print("  ", e, t[:300])
+          for u in ["https://api.argentinadatos.com/v1/finanzas/tasas/plazoFijo",
+                    "https://api.argentinadatos.com/v1/finanzas/tasas/depositos30Dias",
+                    "https://api.argentinadatos.com/v1/finanzas/indices/uva",
+                    "https://api.argentinadatos.com/v1/finanzas/indices/inflacion",
+                    "https://apis.datos.gob.ar/series/api/search/?q=ripte&limit=5",
+                    "https://apis.datos.gob.ar/series/api/search/?q=salario%20minimo%20vital%20movil&limit=8",
+                    "https://apis.datos.gob.ar/series/api/series/?ids=158.1_REPTE_0_0_5&last=3&format=json",
+                    "https://apis.datos.gob.ar/series/api/series/?ids=57.1_SMVMM_0_M_34&last=3&format=json"]:
+              s,t=get(u); print("\n==", u, s); print(t[:1500] if not t.startswith("[") else t[:300]+" ... "+t[-300:])
+          PY
