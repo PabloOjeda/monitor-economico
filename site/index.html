@@ -12,7 +12,7 @@
 :root {
   color-scheme: light;
   --bg: #f3f5f8; --surface: #fcfcfb; --border: #dfe3e8;
-  --text: #0b0b0b; --text-2: #52514e; --muted: #77756f; --grid: #e7e9ec;
+  --text: #0b0b0b; --text-2: #52514e; --muted: #5a5853; --grid: #e7e9ec;
   --accent: #2a78d6;
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
 }
@@ -20,7 +20,7 @@
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
     --bg: #111111; --surface: #1a1a19; --border: #30302e;
-    --text: #f0efec; --text-2: #c3c2b7; --muted: #9a998f; --grid: #2a2a28;
+    --text: #f0efec; --text-2: #c3c2b7; --muted: #b3b2a8; --grid: #2a2a28;
     --accent: #3987e5;
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
   }
@@ -28,7 +28,7 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #111111; --surface: #1a1a19; --border: #30302e;
-  --text: #f0efec; --text-2: #c3c2b7; --muted: #9a998f; --grid: #2a2a28;
+  --text: #f0efec; --text-2: #c3c2b7; --muted: #b3b2a8; --grid: #2a2a28;
   --accent: #3987e5;
   --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
 }
@@ -55,17 +55,29 @@ h2 { font-size: 22px; margin: 30px 0 4px; letter-spacing: -0.01em; }
 .card .nota { color: var(--muted); font-size: 13.5px; margin: 2px 0 10px; }
 .chart { position: relative; height: 400px; }
 @media (max-width: 860px) { .chart { height: 340px; } }
-.selector { display: grid; grid-template-columns: 1.1fr repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
-@media (max-width: 1100px) { .selector { grid-template-columns: repeat(2, minmax(0, 1fr)); } .selector .busca { grid-column: 1 / -1; } }
-@media (max-width: 560px) { .selector { grid-template-columns: 1fr; } }
-.selector label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 4px 2px; }
-.selector select, .selector input { width: 100%; font: inherit; font-size: 14.5px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
-.selector select.activo { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); font-weight: 600; }
-.busca { position: relative; }
-.resultados { position: absolute; z-index: 5; top: 100%; left: 0; right: 0; margin-top: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.12); max-height: 320px; overflow-y: auto; display: none; }
-.resultados button { display: block; width: 100%; text-align: left; font: inherit; font-size: 14px; color: var(--text); background: none; border: 0; padding: 7px 10px; cursor: pointer; }
-.resultados button:hover { background: var(--bg); }
-.resultados .grp { color: var(--muted); font-size: 12px; margin-left: 6px; }
+.explorer { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 860px) { .explorer { grid-template-columns: 1fr; } }
+.lista { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px; }
+.lista input { width: 100%; font: inherit; font-size: 14.5px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); margin-bottom: 6px; }
+.lista details { border-top: 1px solid var(--grid); }
+.lista details:first-of-type { border-top: 0; }
+.lista summary { list-style: none; cursor: pointer; padding: 9px 6px; font-weight: 700; font-size: 14.5px; display: flex; justify-content: space-between; align-items: center; }
+.lista summary::-webkit-details-marker { display: none; }
+.lista summary::after { content: "▸"; color: var(--muted); transition: transform .15s; }
+.lista details[open] summary::after { transform: rotate(90deg); }
+.lista summary .n { font-weight: 500; font-size: 12.5px; color: var(--muted); margin-left: auto; margin-right: 8px; }
+.lista .sub { font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 8px 8px 2px; }
+.lista button { display: block; width: 100%; text-align: left; font: inherit; font-size: 14px; color: var(--text); background: none; border: 0; border-radius: 6px; padding: 5px 8px 5px 14px; cursor: pointer; }
+.lista button:hover { background: var(--bg); }
+.lista button[aria-selected="true"] { background: var(--bg); box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
+.kpi[title] { cursor: help; }
+details.metodo { margin-top: 30px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+details.metodo > summary { cursor: pointer; padding: 13px 16px; font-weight: 700; font-size: 16px; }
+.metodo .cuerpo { padding: 0 16px 14px; font-size: 14px; color: var(--text-2); }
+.metodo dl { display: grid; grid-template-columns: minmax(180px, 260px) 1fr; gap: 6px 16px; margin: 0; }
+.metodo dt { font-weight: 600; color: var(--text); }
+.metodo dd { margin: 0; }
+@media (max-width: 620px) { .metodo dl { grid-template-columns: 1fr; } .metodo dd { margin-bottom: 8px; } }
 .cabecera { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
 .log { font-size: 13.5px; color: var(--text-2); display: none; align-items: center; gap: 6px; white-space: nowrap; }
 details.cat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; }
@@ -111,16 +123,11 @@ footer a { color: var(--accent); }
   <div class="kpis" id="kpis"></div>
 
   <h2>Explorador de indicadores</h2>
-  <p class="sec-lead">Elegí un indicador en cualquiera de los cuatro menús o buscalo por nombre. En los comparativos, tocá un país en la leyenda para mostrarlo u ocultarlo; en datos del FMI la línea punteada marca proyecciones.</p>
-  <div id="explorador">
-    <div class="selector">
-      <div class="busca"><label for="buscar">Buscar</label>
-        <input id="buscar" type="search" placeholder="Buscar indicador…" autocomplete="off">
-        <div class="resultados" id="items"></div></div>
-      <div><label for="g1">Actividad y precios</label><select id="g1"></select></div>
-      <div><label for="g2">Ingresos y salarios</label><select id="g2"></select></div>
-      <div><label for="g3">Dólar, tasas y mercado</label><select id="g3"></select></div>
-      <div><label for="g4">Comparación internacional</label><select id="g4"></select></div>
+  <p class="sec-lead">Abrí un grupo y elegí un indicador, o buscalo por nombre. En los comparativos, tocá un país en la leyenda para mostrarlo u ocultarlo; en datos del FMI la línea punteada marca proyecciones.</p>
+  <div class="explorer" id="explorador">
+    <div class="lista">
+      <input id="buscar" type="search" placeholder="Buscar indicador…" aria-label="Buscar indicador" autocomplete="off">
+      <div id="items"></div>
     </div>
     <div class="card">
       <div class="cabecera">
@@ -134,6 +141,20 @@ footer a { color: var(--accent); }
   <h2>Argentina frente a la región</h2>
   <p class="sec-lead">Tocá un tema para desplegarlo. Compara el último dato de Argentina con el promedio de América Latina y la ubica entre 10 países (Brasil, Chile, Uruguay, México, Colombia, Perú, Paraguay, Bolivia y Ecuador). Tocá una fila para ver su evolución en el explorador.</p>
   <div id="rank"></div>
+
+  <details class="metodo" id="metodologia"><summary>Metodología: cómo se calcula cada indicador</summary><div class="cuerpo"><dl>
+    <dt>Frecuencia</dt><dd>Cada dato se muestra con su período: día (dd/mm/aaaa), mes, trimestre (T) o semestre (S). Las fuentes publican con atraso propio: riesgo país y dólar mayorista, 1 día; reservas y base monetaria del BCRA, 2 a 3 días hábiles; actividad y salarios, unos 2 meses.</dd>
+    <dt>Variación interanual</dt><dd>Valor del período contra el mismo período del año anterior.</dd>
+    <dt>Inflación</dt><dd>IPC nacional del INDEC, nivel general. Mensual: contra el mes anterior. Anualizada 3 meses: variación de los últimos 3 meses llevada a 12. Acumulada: contra diciembre del año anterior. Anual: diciembre contra diciembre y promedio del año contra el promedio del año anterior (la que usan el Banco Mundial y el FMI).</dd>
+    <dt>Salario real</dt><dd>Índice de salarios total del INDEC (registrados y no registrados) dividido por el IPC, base diciembre 2016 = 100. El RIPTE y el salario mínimo reales se calculan igual.</dd>
+    <dt>Dólar</dt><dd>Blue: cotización informal de venta (ArgentinaDatos). Oficial: venta minorista del Banco Nación. Mayorista: Comunicación A 3500 del BCRA. En los gráficos, promedio mensual de los datos diarios; en las tarjetas, último dato del día.</dd>
+    <dt>Brecha cambiaria</dt><dd>Tarjeta: blue sobre oficial del último día disponible (y sobre el mayorista). Gráfico: promedio mensual del blue sobre promedio mensual del oficial.</dd>
+    <dt>Dólar a precios de hoy</dt><dd>Blue de cada mes multiplicado por la inflación acumulada hasta el último IPC.</dd>
+    <dt>Canasta en dólares</dt><dd>Canasta básica total de un adulto (GBA, INDEC) dividida por el blue promedio del mes. "Canastas que paga un salario": salario dividido por esa canasta.</dd>
+    <dt>Plazo fijo real</dt><dd>Mensual: tasa a 30 días del BCRA (TNA × 30/365) contra la inflación de ese mes. Esperado: tasa efectiva anual contra la inflación a 12 meses del REM (mediana).</dd>
+    <dt>Tasas</dt><dd>Plazo fijo, TAMAR, BADLAR y préstamos personales: tasa nominal anual, promedio mensual de los datos diarios del BCRA.</dd>
+    <dt>Comparación regional</dt><dd>Último dato de los últimos 10 años de cada país (Banco Mundial; FMI cuando responde). "Mejor/peor que la región": diferencia de más de 3% contra el promedio de América Latina, según si para ese indicador es mejor un valor alto o bajo. Puesto: entre Argentina, Brasil, Chile, Uruguay, México, Colombia, Perú, Paraguay, Bolivia y Ecuador.</dd>
+  </dl></div></details>
 
   <footer>
     <p><strong>Fuentes:</strong> <a href="https://api.indec.gob.ar/">INDEC (API de datos)</a> y <a href="https://www.indec.gob.ar/">archivos de series del INDEC</a> ·
@@ -200,40 +221,42 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
   // ---------- tarjetas
   function kpis() {
     const t = [];
-    const add = (lbl, val, sub) => t.push(`<div class="kpi"><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="sub">${sub}</div></div>`);
+    const add = (lbl, val, sub, met) => t.push(`<div class="kpi"${met ? ` title="${met}"` : ""}><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="sub">${sub}</div></div>`);
     let [k, v] = ult(V("emae_ia"));
-    add("Actividad económica (EMAE)", fPct(v, 1, true), `${per(k)} · vs. mismo mes del año anterior`);
+    add("Actividad económica (EMAE)", fPct(v, 1, true), `${per(k)} · vs. mismo mes del año anterior`, "EMAE del INDEC, serie original. Variación contra el mismo mes del año anterior.");
     [k, v] = ult(V("ipc_m"));
-    add("Inflación mensual", fPct(v), `${per(k)}`);
+    add("Inflación mensual", fPct(v), `${per(k)}`, "IPC nacional del INDEC, nivel general, contra el mes anterior.");
     [k, v] = ult(V("ipc_ia"));
-    add("Inflación interanual", fPct(v), `${per(k)} · hace un año: ${fPct(hace12(V("ipc_ia"), k))}`);
+    add("Inflación interanual", fPct(v), `${per(k)} · hace un año: ${fPct(hace12(V("ipc_ia"), k))}`, "IPC contra el mismo mes del año anterior.");
     [k, v] = ult(V("ipc_3m_anual"));
-    add("Inflación anualizada (3 meses)", fPct(v), `${per(k)} · ritmo de los últimos 3 meses llevado a un año`);
+    add("Inflación anualizada (3 meses)", fPct(v), `${per(k)} · ritmo de los últimos 3 meses llevado a un año`, "(IPC del mes / IPC de 3 meses antes) elevado a la 4, menos 1.");
     [k, v] = ult(V("ipc_acum_anio"));
-    add("Inflación acumulada del año", fPct(v), `enero a ${per(k)}`);
+    add("Inflación acumulada del año", fPct(v), `enero a ${per(k)}`, "IPC del último mes contra diciembre del año anterior.");
     [k, v] = ult(V("salario_real_ia"));
-    add("Salario real", fPct(v, 1, true), `${per(k)} · vs. un año antes, descontada la inflación`);
+    add("Salario real", fPct(v, 1, true), `${per(k)} · vs. un año antes, descontada la inflación`, "Índice de salarios total del INDEC dividido por el IPC, contra el mismo mes del año anterior.");
     [k, v] = ult(S("desocupacion"));
-    add("Desocupación", v == null ? "s/d" : fNum(v, 1) + "%", `${per(k)} · hace un año: ${hace12(S("desocupacion"), k) == null ? "s/d" : fNum(hace12(S("desocupacion"), k), 1) + "%"}`);
+    add("Desocupación", v == null ? "s/d" : fNum(v, 1) + "%", `${per(k)} · hace un año: ${hace12(S("desocupacion"), k) == null ? "s/d" : fNum(hace12(S("desocupacion"), k), 1) + "%"}`, "EPH del INDEC: desocupados sobre población activa, por trimestre.");
     [k, v] = ult(S("pobreza"));
-    add("Pobreza (personas)", v == null ? "s/d" : fNum(v, 1) + "%", `${per(k)} · indigencia: ${ult(S("indigencia"))[1] == null ? "s/d" : fNum(ult(S("indigencia"))[1], 1) + "%"}`);
+    add("Pobreza (personas)", v == null ? "s/d" : fNum(v, 1) + "%", `${per(k)} · indigencia: ${ult(S("indigencia"))[1] == null ? "s/d" : fNum(ult(S("indigencia"))[1], 1) + "%"}`, "EPH del INDEC: % de personas bajo la línea de pobreza (canasta básica total), por semestre.");
     const bd = D.series.blue && D.series.blue.ultimo_diario;
     [k, v] = ult(V("blue_ia"));
-    add("Dólar blue", bd ? "$" + fNum(bd.valor) : "s/d", `${bd ? bd.fecha.split("-").reverse().join("/") : ""} · interanual: ${fPct(v, 1, true)}`);
-    [k, v] = ult(V("brecha"));
-    add("Brecha cambiaria", fPct(v), `${per(k)} · blue vs. oficial`);
+    add("Dólar blue", bd ? "$" + fNum(bd.valor) : "s/d", `${bd ? bd.fecha.split("-").reverse().join("/") : ""} · interanual: ${fPct(v, 1, true)}`, "Venta del último día (ArgentinaDatos). Interanual: promedio del mes contra el mismo mes del año anterior.");
+    const ub = (D.series.blue || {}).diario || {}, uo = (D.series.oficial || {}).diario || {}, um = (D.series.mayorista || {}).diario || {};
+    const fb = Object.keys(ub).filter((x) => uo[x]).sort().pop(), fm = Object.keys(um).sort().pop();
+    if (fb) add("Brecha cambiaria", fPct(ub[fb] / uo[fb] - 1), `${fb.split("-").reverse().join("/")} · vs. mayorista: ${fm ? fPct(ub[fb] / um[fm] - 1) : "s/d"}`, "Blue sobre oficial minorista del Banco Nación del mismo día. Entre paréntesis, blue sobre el último mayorista del BCRA.");
+    else { [k, v] = ult(V("brecha")); add("Brecha cambiaria", fPct(v), `${per(k)} · promedio del mes`); }
     const rd = D.series.riesgo && D.series.riesgo.ultimo_diario;
-    add("Riesgo país", rd ? fNum(rd.valor) + " pb" : "s/d", rd ? rd.fecha.split("-").reverse().join("/") : "");
+    add("Riesgo país", rd ? fNum(rd.valor) + " pb" : "s/d", rd ? rd.fecha.split("-").reverse().join("/") : "", "EMBI de JP Morgan para Argentina, último dato publicado por ArgentinaDatos (llega con un día de atraso).");
     const res = D.series.reservas && D.series.reservas.diario;
     if (res) {
       const [kr, vr] = ult(res), d = new Date(kr); d.setFullYear(d.getFullYear() - 1);
       const ref = Object.keys(res).filter((x) => x <= d.toISOString().slice(0, 10)).sort().pop();
-      add("Reservas del BCRA", "US$ " + fNum(vr / 1000, 1) + " mil M", `${per(kr)} · hace un año: ${ref ? "US$ " + fNum(res[ref] / 1000, 1) + " mil M" : "s/d"}`);
+      add("Reservas del BCRA", "US$ " + fNum(vr / 1000, 1) + " mil M", `${per(kr)} · hace un año: ${ref ? "US$ " + fNum(res[ref] / 1000, 1) + " mil M" : "s/d"}`, "Reservas internacionales brutas del BCRA, último dato publicado (2 a 3 días hábiles de atraso).");
     }
     [k, v] = ult(V("cbt_usd"));
-    add("Canasta básica en dólares", v == null ? "s/d" : "US$ " + fNum(v), `${per(k)} · por adulto, en dólares blue`);
+    add("Canasta básica en dólares", v == null ? "s/d" : "US$ " + fNum(v), `${per(k)} · por adulto, en dólares blue`, "Canasta básica total de un adulto (GBA, INDEC) dividida por el blue promedio del mes.");
     const pob = S("poblacion"), a = String(new Date().getFullYear());
-    add("Población", pob[a] ? fNum(pob[a] / 1e6, 1) + " millones" : "s/d", `proyección INDEC ${a}`);
+    add("Población", pob[a] ? fNum(pob[a] / 1e6, 1) + " millones" : "s/d", `proyección INDEC ${a}`, "Proyección de población del INDEC (Censo 2022) al 1 de julio.");
     $("kpis").innerHTML = t.join("");
   }
 
@@ -327,7 +350,7 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
       () => dibujar("c_exp", "line", [{ label: "Dólar blue", data: rebase(S("blue")), color: "--s1" }, { label: "Precios (IPC)", data: rebase(S("ipc")), color: "--s2" }, { label: "Salarios", data: rebase(S("salarios")), color: "--s3" }], (v) => fNum(v))],
     ["Dólar y mercado", "blue_real", "Dólar blue: nominal y a precios de hoy", "$ por USD, promedio mensual. \"A precios de hoy\" ajusta por inflación · ArgentinaDatos",
       () => dibujar("c_exp", "line", [{ label: "Nominal", data: filtra(S("blue")), color: "--s1" }, { label: "A precios de hoy", data: filtra(V("blue_real")), color: "--s2" }], (v) => "$" + fNum(v))],
-    ["Dólar y mercado", "brecha", "Brecha cambiaria", "Dólar blue sobre dólar oficial, %",
+    ["Dólar y mercado", "brecha", "Brecha cambiaria", "Promedio mensual del blue sobre promedio mensual del oficial (Banco Nación), %",
       () => dibujar("c_exp", "line", [{ label: "Brecha", data: filtra(V("brecha")), color: "--s7" }], pct)],
     ["Dólar y mercado", "riesgo", "Riesgo país", "Puntos básicos, promedio mensual · ArgentinaDatos",
       () => dibujar("c_exp", "line", [{ label: "Riesgo país", data: filtra(S("riesgo")), color: "--s8" }], (v) => fNum(v))],
@@ -418,41 +441,35 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
 
   // ---------- explorador
   let selExp = "a:act_inf", filtroTxt = "";
-  const MENUS = {
-    g1: [["", ["Actividad y precios"]]],
-    g2: [["Ingresos y costo de vida", ["Ingresos y costo de vida"]], ["Salarios de referencia", ["Salarios de referencia"]]],
-    g3: [["Dólar y mercado", ["Dólar y mercado"]], ["Tasas y ahorro", ["Tasas y ahorro"]]],
-  };
+  const GRUPOS = [
+    ["Actividad y precios", [["", ["Actividad y precios"]]]],
+    ["Ingresos y salarios", [["Ingresos y costo de vida", ["Ingresos y costo de vida"]], ["Salarios de referencia", ["Salarios de referencia"]]]],
+    ["Dólar, tasas y mercado", [["Dólar y mercado", ["Dólar y mercado"]], ["Tasas y ahorro", ["Tasas y ahorro"]]]],
+  ];
   const norm = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  function opciones() {
-    const out = {};
-    for (const [id, grupos] of Object.entries(MENUS)) out[id] = grupos.map(([titulo, gs]) => [titulo, AR.filter((x) => gs.includes(x[0])).map((x) => ["a:" + x[1], x[2]])]);
-    out.g4 = CATS.map((c) => [c, Object.keys(M).filter((k) => (M[k].categoria || "Macroeconomía") === c).map((k) => ["m:" + k, M[k].nombre])]).filter((x) => x[1].length);
-    return out;
-  }
+  const abiertos = new Set();
   function lista() {
-    const ops = opciones();
-    for (const [id, grupos] of Object.entries(ops)) {
-      const tiene = grupos.some(([, its]) => its.some(([v]) => v === selExp));
-      $(id).innerHTML = `<option value="">Elegí…</option>` + grupos.map(([t, its]) => {
-        const o = its.map(([v, n]) => `<option value="${v}"${v === selExp ? " selected" : ""}>${n}</option>`).join("");
-        return t ? `<optgroup label="${t}">${o}</optgroup>` : o;
-      }).join("");
-      $(id).classList.toggle("activo", tiene);
-      $(id).onchange = (e) => { if (e.target.value) { selExp = e.target.value; lista(); explorar(); } };
-    }
+    const grupos = GRUPOS.map(([g, subs]) => [g, subs.map(([t, gs]) => [t, AR.filter((x) => gs.includes(x[0])).map((x) => ["a:" + x[1], x[2]])])]);
+    grupos.push(["Comparación internacional", CATS.map((c) => [c, Object.keys(M).filter((k) => (M[k].categoria || "Macroeconomía") === c).map((k) => ["m:" + k, M[k].nombre])]).filter((x) => x[1].length)]);
     const q = norm(filtroTxt.trim());
-    const box = $("items");
-    if (!q) { box.style.display = "none"; return; }
-    const etiquetas = { g1: "Actividad y precios", g2: "Ingresos y salarios", g3: "Dólar, tasas y mercado", g4: "Comparación internacional" };
-    const hits = [];
-    for (const [id, grupos] of Object.entries(ops)) for (const [t, its] of grupos) for (const [v, n] of its)
-      if (norm(n).includes(q) || norm(t).includes(q)) hits.push([v, n, t || etiquetas[id]]);
-    box.innerHTML = hits.length ? hits.slice(0, 30).map(([v, n, g]) => `<button data-id="${v}">${n}<span class="grp">${g}</span></button>`).join("") : '<div class="vacio" style="height:60px">Sin resultados</div>';
-    box.style.display = "block";
-    box.querySelectorAll("button").forEach((b) => b.onclick = () => { selExp = b.dataset.id; filtroTxt = ""; $("buscar").value = ""; lista(); explorar(); });
+    let html = "";
+    for (const [g, subs] of grupos) {
+      const f = subs.map(([t, its]) => [t, its.filter(([, n]) => !q || norm(n).includes(q) || norm(t).includes(q) || norm(g).includes(q))]).filter(([, its]) => its.length);
+      const n = f.reduce((a, [, its]) => a + its.length, 0);
+      if (!n) continue;
+      const tieneSel = f.some(([, its]) => its.some(([v]) => v === selExp));
+      const abierto = q || abiertos.has(g) || (tieneSel && !abiertos.has("cerrado:" + g));
+      html += `<details data-g="${g}"${abierto ? " open" : ""}><summary>${g}<span class="n">${n}</span></summary>` +
+        f.map(([t, its]) => (t && f.length + (g === "Comparación internacional" ? 1 : 0) > 1 ? `<div class="sub">${t}</div>` : "") +
+          its.map(([v, nm]) => `<button data-id="${v}" aria-selected="${v === selExp}">${nm}</button>`).join("")).join("") + `</details>`;
+    }
+    $("items").innerHTML = html || '<div class="vacio" style="height:60px">Sin resultados</div>';
+    $("items").querySelectorAll("details").forEach((d) => d.addEventListener("toggle", () => {
+      const g = d.dataset.g;
+      if (d.open) { abiertos.add(g); abiertos.delete("cerrado:" + g); } else { abiertos.delete(g); abiertos.add("cerrado:" + g); }
+    }));
+    $("items").querySelectorAll("button").forEach((b) => b.onclick = () => { selExp = b.dataset.id; lista(); explorar(); });
   }
-  document.addEventListener("click", (e) => { if (!e.target.closest(".busca")) $("items").style.display = "none"; });
   function explorar() {
     if (charts.c_exp) { charts.c_exp.destroy(); delete charts.c_exp; }
     const el = $("c_exp");
