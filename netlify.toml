@@ -1,0 +1,8 @@
+# Configuración de Netlify para el monitor económico.
+# La página se publica desde la carpeta "site". No hay paso de compilación.
+[build]
+  publish = "site"
+  command = ""
+  # Solo publica cuando cambia la página (index.html u otros archivos de site),
+  # no cuando GitHub guarda los datos nuevos: la página ya los lee directamente de GitHub.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- site ':(exclude)site/data' netlify.toml"
