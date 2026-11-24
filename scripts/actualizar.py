@@ -572,12 +572,12 @@ def main():
     controles = []
     for k in ("blue", "oficial", "mayorista", "riesgo", "reservas"):
         d = S.get(k, {}).get("diario", {})
-        ks = sorted(d)
-        if len(ks) >= 2 and d[ks[-2]]:
-            salto = d[ks[-1]] / d[ks[-2]] - 1
-            if abs(salto) > 0.10:
-                controles.append({"serie": k, "fecha": ks[-1], "valor": d[ks[-1]], "anterior": d[ks[-2]], "salto": round(salto, 4)})
-                avisos.append(f"A verificar: {S[k]['nombre']} saltó {salto:+.0%} el {ks[-1]} ({d[ks[-2]]:g} → {d[ks[-1]]:g})")
+        ks = sorted(d)[-11:]   # saltos de un día a otro dentro de los últimos 10 datos
+        for a, b in zip(ks, ks[1:]):
+            if d[a] and abs(d[b] / d[a] - 1) > 0.10:
+                salto = d[b] / d[a] - 1
+                controles.append({"serie": k, "fecha": b, "valor": d[b], "anterior": d[a], "salto": round(salto, 4)})
+                avisos.append(f"A verificar: {S[k]['nombre']} saltó {salto:+.0%} el {b} ({d[a]:g} → {d[b]:g})")
     nuevo = {"actualizado": datetime.now(timezone.utc).isoformat(timespec="minutes"),
              "anio_inicio": ANIO_INICIO, "series": S, "derivados": derivados, "mundo": MUNDO,
              "errores": errores, "avisos": avisos, "controles": controles}
