@@ -167,7 +167,7 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
 
   let D;
   try {
-    D = await fetch(URL_DATOS, { cache: "no-store" }).then((r) => { if (!r.ok) throw 0; return r.json(); });
+    D = await fetch(URL_DATOS + (URL_DATOS.includes("?") ? "&" : "?") + "v=" + Date.now(), { cache: "no-store" }).then((r) => { if (!r.ok) throw 0; return r.json(); });
   } catch (e) {
     $("actualizado").textContent = "Todavía no hay datos: ejecutá la actualización (ver LEEME).";
     return;
@@ -332,6 +332,22 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
       () => dibujar("c_exp", "line", [{ label: "Base monetaria", data: diario("base_monetaria"), color: "--s1" }], (v) => "$" + fNum(v))],
     ["Dólar y mercado", "cbt_usd", "Canasta básica total en dólares", "Lo que cuesta la canasta de un adulto (GBA), en dólares blue",
       () => dibujar("c_exp", "line", [{ label: "Canasta básica total", data: filtra(V("cbt_usd")), color: "--s3" }], (v) => "US$ " + fNum(v))],
+    ["Tasas y ahorro", "tasas", "Tasas de interés: plazo fijo, TAMAR, BADLAR y préstamos personales", "% nominal anual, promedio mensual · BCRA",
+      () => dibujar("c_exp", "line", [{ label: "Plazo fijo 30 días", data: filtra(S("plazo_fijo")), color: "--s1" }, { label: "TAMAR", data: filtra(S("tamar")), color: "--s3" }, { label: "BADLAR", data: filtra(S("badlar")), color: "--s7" }, { label: "Préstamos personales", data: filtra(S("prestamos_personales")), color: "--s2" }], (v) => fNum(v, 0) + "%")],
+    ["Tasas y ahorro", "pf_real", "Plazo fijo contra la inflación del mes", "Rendimiento de un plazo fijo a 30 días descontada la inflación de ese mes, % · BCRA e INDEC",
+      () => dibujar("c_exp", "bar", [{ label: "Rendimiento real mensual", data: filtra(V("plazo_fijo_real_m")), color: "--s1" }], pct1)],
+    ["Tasas y ahorro", "rem", "Inflación esperada (REM) y tasa de plazo fijo", "Próximos 12 meses según el REM del BCRA y tasa efectiva anual del plazo fijo, %",
+      () => dibujar("c_exp", "line", [{ label: "Inflación esperada 12 meses (REM)", data: Object.fromEntries(Object.entries(filtra(S("rem_12m"))).map(([k, v]) => [k, v / 100])), color: "--s2" }, { label: "Plazo fijo (tasa efectiva anual)", data: filtra(V("plazo_fijo_tea")), color: "--s1" }], pct)],
+    ["Tasas y ahorro", "uva_icl", "UVA y alquileres (ICL)", "Variación interanual, % · BCRA",
+      () => dibujar("c_exp", "line", [{ label: "UVA", data: filtra(V("uva_ia")), color: "--s1" }, { label: "Alquileres (ICL)", data: filtra(V("icl_ia")), color: "--s2" }, { label: "Inflación (IPC)", data: filtra(V("ipc_ia")), color: "--s4" }], pct)],
+    ["Salarios de referencia", "sal_ref", "RIPTE y salario mínimo", "$ por mes · Secretaría de Trabajo",
+      () => dibujar("c_exp", "line", [{ label: "RIPTE (trabajadores estables)", data: filtra(S("ripte")), color: "--s1" }, { label: "Salario mínimo", data: filtra(S("smvm")), color: "--s2" }], (v) => "$" + fNum(v))],
+    ["Salarios de referencia", "sal_ref_real", "RIPTE y salario mínimo reales", "Descontada la inflación, diciembre 2016 = 100",
+      () => dibujar("c_exp", "line", [{ label: "RIPTE real", data: filtra(V("ripte_real")), color: "--s1" }, { label: "Salario mínimo real", data: filtra(V("smvm_real")), color: "--s2" }, { label: "Índice de salarios real", data: filtra(V("salario_real")), color: "--s3" }], (v) => fNum(v))],
+    ["Salarios de referencia", "sal_ref_usd", "RIPTE y salario mínimo en dólares", "US$ blue por mes",
+      () => dibujar("c_exp", "line", [{ label: "RIPTE", data: filtra(V("ripte_usd")), color: "--s1" }, { label: "Salario mínimo", data: filtra(V("smvm_usd")), color: "--s2" }], (v) => "US$ " + fNum(v))],
+    ["Salarios de referencia", "sal_ref_cbt", "Cuántas canastas básicas paga cada salario", "Salario dividido por la canasta básica total de un adulto (GBA)",
+      () => dibujar("c_exp", "line", [{ label: "RIPTE", data: filtra(V("ripte_cbt")), color: "--s1" }, { label: "Salario mínimo", data: filtra(V("smvm_cbt")), color: "--s2" }], (v) => fNum(v, 1))],
   ];
 
   // ---------- comparación regional
@@ -399,7 +415,7 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
     const norm = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
     const q = norm(filtroTxt);
     const grupos = [];
-    for (const g of ["Actividad y precios", "Ingresos y costo de vida", "Dólar y mercado"]) grupos.push([g, AR.filter((x) => x[0] === g).map((x) => ["a:" + x[1], x[2]])]);
+    for (const g of ["Actividad y precios", "Ingresos y costo de vida", "Salarios de referencia", "Dólar y mercado", "Tasas y ahorro"]) grupos.push([g, AR.filter((x) => x[0] === g).map((x) => ["a:" + x[1], x[2]])]);
     for (const cat of CATS) grupos.push([cat + " · comparado", Object.keys(M).filter((k) => (M[k].categoria || "Macroeconomía") === cat).map((k) => ["m:" + k, M[k].nombre])]);
     $("items").innerHTML = grupos.map(([g, its]) => {
       const f = its.filter((x) => !q || norm(x[1]).includes(q) || norm(g).includes(q));

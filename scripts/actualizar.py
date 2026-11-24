@@ -241,6 +241,8 @@ def dolar(casa, id_, nombre):
         ult = max(f, key=lambda r: r["fecha"]) if f else None
         if ult:
             S[id_]["ultimo_diario"] = {"fecha": str(ult["fecha"])[:10], "valor": num(ult.get("venta"))}
+            S[id_]["diario"] = {str(r["fecha"])[:10]: num(r.get("venta")) for r in sorted(f, key=lambda r: r["fecha"])
+                               if str(r["fecha"])[:4] >= str(HOY.year - 1) and num(r.get("venta")) is not None}
     return run
 
 
@@ -252,6 +254,8 @@ def riesgo_pais():
     ult = max(f, key=lambda r: r["fecha"]) if f else None
     if ult:
         S["riesgo"]["ultimo_diario"] = {"fecha": str(ult["fecha"])[:10], "valor": num(ult.get("valor"))}
+        S["riesgo"]["diario"] = {str(r["fecha"])[:10]: num(r.get("valor")) for r in sorted(f, key=lambda r: r["fecha"])
+                                 if num(r.get("valor")) is not None}
 
 
 # ---------------------------------------------------------------- FMI y Banco Mundial
@@ -395,6 +399,21 @@ def bcra():
     pedidos = {"reservas": (buscar("reservas internacionales") or 1, "Reservas internacionales del BCRA", "millones de USD"),
                "base_monetaria": (buscar("base monetaria", excluir=("var", "promedio")), "Base monetaria", "millones de $"),
                "mayorista": (buscar("tipo de cambio mayorista") or buscar("a3500"), "Dólar mayorista oficial (A3500)", "$ por USD")}
+    def por_id(n, *palabras):
+        # usa el id conocido si su descripción coincide; si el BCRA renumeró, lo busca por nombre
+        for v in lista:
+            if v.get("idVariable") == n and all(p in txt(v.get("descripcion")) for p in palabras):
+                return n
+        return buscar(*palabras) if lista else n
+    pedidos.update({
+        "plazo_fijo": (por_id(12, "depósitos a 30 días"), "Tasa de plazo fijo a 30 días (TNA)", "% nominal anual"),
+        "tamar": (por_id(44, "tamar"), "Tasa TAMAR de bancos privados (TNA)", "% nominal anual"),
+        "badlar": (por_id(7, "badlar"), "Tasa BADLAR de bancos privados (TNA)", "% nominal anual"),
+        "prestamos_personales": (por_id(14, "préstamos personales"), "Tasa de préstamos personales (TNA)", "% nominal anual"),
+        "rem_12m": (por_id(29, "expectativas"), "Inflación esperada próximos 12 meses (REM, mediana)", "% interanual"),
+        "uva": (por_id(31, "unidad de valor adquisitivo"), "UVA (Unidad de Valor Adquisitivo)", "$"),
+        "icl": (por_id(40, "locación"), "Índice para Contratos de Locación (ICL)", "índice 30/6/2020 = 1"),
+    })
     for id_, (var, nombre, unidad) in pedidos.items():
         if not var:
             avisos.append(f"BCRA: no se encontró la variable {nombre}"); continue
@@ -421,6 +440,31 @@ def bcra():
         except Exception as e:
             errores.append(f"BCRA {nombre}: {type(e).__name__}: {e}")
             print(f"  !! BCRA {nombre}: {e}")
+
+
+# ---------------------------------------------------------------- salarios de referencia (API de series de datos.gob.ar)
+def series_ar(id_, serie, nombre, unidad, fuente):
+    def run():
+        r = get(f"https://apis.datos.gob.ar/series/api/series/?ids={serie}&start_date={ANIO_INICIO - 1}-01-01&limit=1000&format=json")
+        datos = {}
+        for fila in r.get("data", []):
+            f, v = str(fila[0])[:7], num(fila[1])
+            if v is not None and f <= HOY.isoformat()[:7]:   # el salario mínimo trae aumentos ya decididos a futuro
+                datos[f] = v
+        guardar(id_, nombre, unidad, "M", fuente, dict(sorted(datos.items())))
+    return run
+
+
+def plazo_fijo_bancos():
+    f = get("https://api.argentinadatos.com/v1/finanzas/tasas/plazoFijo")
+    lista = sorted(({"entidad": str(r.get("entidad", "")).title(), "tna_clientes": num(r.get("tnaClientes")),
+                     "tna_no_clientes": num(r.get("tnaNoClientes"))} for r in f if num(r.get("tnaClientes"))),
+                   key=lambda x: -x["tna_clientes"])
+    S["plazo_fijo_bancos"] = {"nombre": "Plazo fijo a 30 días por banco (hoy)", "unidad": "TNA (proporción)",
+                              "frecuencia": "D", "fuente": "ArgentinaDatos / BCRA", "fecha": HOY.isoformat(), "lista": lista}
+    print(f"  {'Plazo fijo por banco':<45} {len(lista):>5} bancos")
+    if not lista:
+        errores.append("Plazo fijo por banco: sin datos")
 
 
 # ---------------------------------------------------------------- indicadores derivados
@@ -472,6 +516,21 @@ def derivar():
         ant = [ipc_.get(f"{a - 1}-{m:02d}") for m in range(1, 13)]
         if all(act) and all(ant):
             D["ipc_promedio_anual"][str(a)] = sum(act) / sum(ant) - 1
+    # ---- tasas, ahorro y salarios de referencia
+    pf, rem = ser("plazo_fijo"), ser("rem_12m")
+    mensual_pf = {p: v / 100 * 30 / 365 for p, v in pf.items()}               # rendimiento de 30 días
+    D["plazo_fijo_tea"] = {p: (1 + r) ** (365 / 30) - 1 for p, r in mensual_pf.items()}
+    D["plazo_fijo_real_m"] = {p: (1 + mensual_pf[p]) / (1 + D["ipc_m"][p]) - 1 for p in mensual_pf if p in D["ipc_m"]}
+    D["plazo_fijo_real_esperado"] = {p: (1 + D["plazo_fijo_tea"][p]) / (1 + rem[p] / 100) - 1 for p in D["plazo_fijo_tea"] if p in rem}
+    for i in ("ripte", "smvm"):
+        src = ser(i)
+        D[i + "_usd"] = {p: src[p] / blue[p] for p in src if p in blue and blue[p]}
+        D[i + "_cbt"] = {p: src[p] / cb[p] for p in src if p in cb and cb[p]}                 # canastas de adulto que paga
+        D[i + "_ia"] = var(src, 12)
+        if base in src and base in ipc_:
+            D[i + "_real"] = {p: (src[p] / src[base]) / (ipc_[p] / ipc_[base]) * 100 for p in src if p in ipc_}
+    D["icl_ia"] = var(ser("icl"), 12)
+    D["uva_ia"] = var(ser("uva"), 12)
     sec = S.get("emae_sectores", {}).get("sectores", {})
     ult = None
     vs = {}
@@ -502,20 +561,32 @@ def main():
               ("Población", poblacion), ("Salarios", salarios),
               ("Dólar blue", dolar("blue", "blue", "Dólar blue")),
               ("Dólar oficial", dolar("oficial", "oficial", "Dólar oficial")),
-              ("Riesgo país", riesgo_pais), ("BCRA", bcra), ("FMI", fmi), ("Banco Mundial", banco_mundial)]
+              ("Riesgo país", riesgo_pais), ("BCRA", bcra),
+              ("RIPTE", series_ar("ripte", "158.1_REPTE_0_0_5", "RIPTE (salario promedio de trabajadores estables)", "$ por mes", "Secretaría de Trabajo (datos.gob.ar)")),
+              ("Salario mínimo", series_ar("smvm", "57.1_SMVMM_0_M_34", "Salario mínimo, vital y móvil", "$ por mes", "Secretaría de Trabajo (datos.gob.ar)")),
+              ("Plazo fijo por banco", plazo_fijo_bancos), ("FMI", fmi), ("Banco Mundial", banco_mundial)]
     for nombre, fn in tareas:
         intentar(nombre, fn)
     derivados = derivar()
     completar_inflacion(derivados)
+    controles = []
+    for k in ("blue", "oficial", "mayorista", "riesgo", "reservas"):
+        d = S.get(k, {}).get("diario", {})
+        ks = sorted(d)
+        if len(ks) >= 2 and d[ks[-2]]:
+            salto = d[ks[-1]] / d[ks[-2]] - 1
+            if abs(salto) > 0.10:
+                controles.append({"serie": k, "fecha": ks[-1], "valor": d[ks[-1]], "anterior": d[ks[-2]], "salto": round(salto, 4)})
+                avisos.append(f"A verificar: {S[k]['nombre']} saltó {salto:+.0%} el {ks[-1]} ({d[ks[-2]]:g} → {d[ks[-1]]:g})")
     nuevo = {"actualizado": datetime.now(timezone.utc).isoformat(timespec="minutes"),
              "anio_inicio": ANIO_INICIO, "series": S, "derivados": derivados, "mundo": MUNDO,
-             "errores": errores, "avisos": avisos}
+             "errores": errores, "avisos": avisos, "controles": controles}
     # Si una fuente falló, se conservan sus datos de la corrida anterior
     if os.path.exists(SALIDA):
         try:
             viejo = json.load(open(SALIDA, encoding="utf-8"))
             for k, v in viejo.get("series", {}).items():
-                if k not in S or not (S[k].get("datos") or S[k].get("sectores")):
+                if k not in S or not (S[k].get("datos") or S[k].get("sectores") or S[k].get("lista")):
                     nuevo["series"][k] = v
             for k, v in viejo.get("mundo", {}).items():
                 nuevo["mundo"].setdefault(k, v)
