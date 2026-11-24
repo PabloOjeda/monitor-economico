@@ -53,17 +53,19 @@ h2 { font-size: 22px; margin: 30px 0 4px; letter-spacing: -0.01em; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
 .card h3 { font-size: 17px; margin: 0; }
 .card .nota { color: var(--muted); font-size: 13.5px; margin: 2px 0 10px; }
-.chart { position: relative; height: 470px; }
-.explorer { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 14px; }
-@media (max-width: 860px) { .explorer { grid-template-columns: 1fr; } .chart { height: 360px; } }
-.lista { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; min-height: 0; }
-.lista input { font: inherit; font-size: 15px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); margin-bottom: 6px; }
-.lista .items { overflow-y: auto; max-height: 560px; }
-@media (max-width: 860px) { .lista .items { max-height: 240px; } }
-.lista .grupo { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 12px 6px 3px; }
-.lista button { display: block; width: 100%; text-align: left; font: inherit; font-size: 14.5px; color: var(--text); background: none; border: 0; border-radius: 6px; padding: 6px 8px; cursor: pointer; }
-.lista button:hover { background: var(--bg); }
-.lista button[aria-selected="true"] { background: var(--bg); box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
+.chart { position: relative; height: 400px; }
+@media (max-width: 860px) { .chart { height: 340px; } }
+.selector { display: grid; grid-template-columns: 1.1fr repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+@media (max-width: 1100px) { .selector { grid-template-columns: repeat(2, minmax(0, 1fr)); } .selector .busca { grid-column: 1 / -1; } }
+@media (max-width: 560px) { .selector { grid-template-columns: 1fr; } }
+.selector label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 4px 2px; }
+.selector select, .selector input { width: 100%; font: inherit; font-size: 14.5px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+.selector select.activo { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); font-weight: 600; }
+.busca { position: relative; }
+.resultados { position: absolute; z-index: 5; top: 100%; left: 0; right: 0; margin-top: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.12); max-height: 320px; overflow-y: auto; display: none; }
+.resultados button { display: block; width: 100%; text-align: left; font: inherit; font-size: 14px; color: var(--text); background: none; border: 0; padding: 7px 10px; cursor: pointer; }
+.resultados button:hover { background: var(--bg); }
+.resultados .grp { color: var(--muted); font-size: 12px; margin-left: 6px; }
 .cabecera { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
 .log { font-size: 13.5px; color: var(--text-2); display: none; align-items: center; gap: 6px; white-space: nowrap; }
 details.cat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; }
@@ -109,11 +111,16 @@ footer a { color: var(--accent); }
   <div class="kpis" id="kpis"></div>
 
   <h2>Explorador de indicadores</h2>
-  <p class="sec-lead">Elegí un indicador de la lista. En los comparativos, tocá un país en la leyenda para mostrarlo u ocultarlo; en datos del FMI la línea punteada marca proyecciones.</p>
-  <div class="explorer" id="explorador">
-    <div class="lista">
-      <input id="buscar" type="search" placeholder="Buscar indicador…" aria-label="Buscar indicador">
-      <div class="items" id="items"></div>
+  <p class="sec-lead">Elegí un indicador en cualquiera de los cuatro menús o buscalo por nombre. En los comparativos, tocá un país en la leyenda para mostrarlo u ocultarlo; en datos del FMI la línea punteada marca proyecciones.</p>
+  <div id="explorador">
+    <div class="selector">
+      <div class="busca"><label for="buscar">Buscar</label>
+        <input id="buscar" type="search" placeholder="Buscar indicador…" autocomplete="off">
+        <div class="resultados" id="items"></div></div>
+      <div><label for="g1">Actividad y precios</label><select id="g1"></select></div>
+      <div><label for="g2">Ingresos y salarios</label><select id="g2"></select></div>
+      <div><label for="g3">Dólar, tasas y mercado</label><select id="g3"></select></div>
+      <div><label for="g4">Comparación internacional</label><select id="g4"></select></div>
     </div>
     <div class="card">
       <div class="cabecera">
@@ -411,18 +418,41 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
 
   // ---------- explorador
   let selExp = "a:act_inf", filtroTxt = "";
-  function lista() {
-    const norm = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-    const q = norm(filtroTxt);
-    const grupos = [];
-    for (const g of ["Actividad y precios", "Ingresos y costo de vida", "Salarios de referencia", "Dólar y mercado", "Tasas y ahorro"]) grupos.push([g, AR.filter((x) => x[0] === g).map((x) => ["a:" + x[1], x[2]])]);
-    for (const cat of CATS) grupos.push([cat + " · comparado", Object.keys(M).filter((k) => (M[k].categoria || "Macroeconomía") === cat).map((k) => ["m:" + k, M[k].nombre])]);
-    $("items").innerHTML = grupos.map(([g, its]) => {
-      const f = its.filter((x) => !q || norm(x[1]).includes(q) || norm(g).includes(q));
-      return f.length ? `<div class="grupo">${g}</div>` + f.map(([id, n]) => `<button data-id="${id}" aria-selected="${id === selExp}">${n}</button>`).join("") : "";
-    }).join("") || '<div class="vacio" style="height:80px">Sin resultados</div>';
-    $("items").querySelectorAll("button").forEach((b) => b.onclick = () => { selExp = b.dataset.id; lista(); explorar(); });
+  const MENUS = {
+    g1: [["", ["Actividad y precios"]]],
+    g2: [["Ingresos y costo de vida", ["Ingresos y costo de vida"]], ["Salarios de referencia", ["Salarios de referencia"]]],
+    g3: [["Dólar y mercado", ["Dólar y mercado"]], ["Tasas y ahorro", ["Tasas y ahorro"]]],
+  };
+  const norm = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  function opciones() {
+    const out = {};
+    for (const [id, grupos] of Object.entries(MENUS)) out[id] = grupos.map(([titulo, gs]) => [titulo, AR.filter((x) => gs.includes(x[0])).map((x) => ["a:" + x[1], x[2]])]);
+    out.g4 = CATS.map((c) => [c, Object.keys(M).filter((k) => (M[k].categoria || "Macroeconomía") === c).map((k) => ["m:" + k, M[k].nombre])]).filter((x) => x[1].length);
+    return out;
   }
+  function lista() {
+    const ops = opciones();
+    for (const [id, grupos] of Object.entries(ops)) {
+      const tiene = grupos.some(([, its]) => its.some(([v]) => v === selExp));
+      $(id).innerHTML = `<option value="">Elegí…</option>` + grupos.map(([t, its]) => {
+        const o = its.map(([v, n]) => `<option value="${v}"${v === selExp ? " selected" : ""}>${n}</option>`).join("");
+        return t ? `<optgroup label="${t}">${o}</optgroup>` : o;
+      }).join("");
+      $(id).classList.toggle("activo", tiene);
+      $(id).onchange = (e) => { if (e.target.value) { selExp = e.target.value; lista(); explorar(); } };
+    }
+    const q = norm(filtroTxt.trim());
+    const box = $("items");
+    if (!q) { box.style.display = "none"; return; }
+    const etiquetas = { g1: "Actividad y precios", g2: "Ingresos y salarios", g3: "Dólar, tasas y mercado", g4: "Comparación internacional" };
+    const hits = [];
+    for (const [id, grupos] of Object.entries(ops)) for (const [t, its] of grupos) for (const [v, n] of its)
+      if (norm(n).includes(q) || norm(t).includes(q)) hits.push([v, n, t || etiquetas[id]]);
+    box.innerHTML = hits.length ? hits.slice(0, 30).map(([v, n, g]) => `<button data-id="${v}">${n}<span class="grp">${g}</span></button>`).join("") : '<div class="vacio" style="height:60px">Sin resultados</div>';
+    box.style.display = "block";
+    box.querySelectorAll("button").forEach((b) => b.onclick = () => { selExp = b.dataset.id; filtroTxt = ""; $("buscar").value = ""; lista(); explorar(); });
+  }
+  document.addEventListener("click", (e) => { if (!e.target.closest(".busca")) $("items").style.display = "none"; });
   function explorar() {
     if (charts.c_exp) { charts.c_exp.destroy(); delete charts.c_exp; }
     const el = $("c_exp");
