@@ -362,6 +362,8 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
   const pct = (v) => fPct(v, 0), pct1 = (v) => fPct(v, 1);
   const diario = (id) => filtra((D.series[id] && D.series[id].diario) || {});
   const rebase = (o) => { const f = filtra(o), ks = Object.keys(f).sort(); return ks.length ? Object.fromEntries(ks.map((k) => [k, f[k] / f[ks[0]] * 100])) : {}; };
+  const baseReal = (o) => desde() <= anioIni ? filtra(o) : rebase(o);
+  const notaBase = () => desde() <= anioIni ? "diciembre 2016 = 100" : `enero ${desde()} = 100`;
   const anual = (o) => Object.fromEntries(Object.entries(o).filter(([k]) => +k >= desde()));
   const AR = [
     ["Actividad y precios", "act_inf", "Actividad e inflación", "Variación interanual, % · INDEC",
@@ -382,8 +384,8 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
       () => dibujar("c_exp", "line", [{ label: "Nivel general", data: filtra(V("ipc_ia")), color: "--s2" }, { label: "Alimentos y bebidas", data: filtra(V("alimentos_ia")), color: "--s4" }], pct)],
     ["Actividad y precios", "sect", "Actividad por sector (último mes)", () => "Variación interanual, " + per((V("sectores_ult") || {}).mes) + ", % · INDEC",
       () => { const v = (V("sectores_ult") || {}).valores || {}; dibujar("c_exp", "bar", [{ label: "Variación interanual", data: Object.fromEntries(Object.entries(v).sort((a, b) => b[1] - a[1])), color: "--s1" }], pct1, { horizontal: true }); }],
-    ["Ingresos y costo de vida", "sal_real", "Salario real", "Índice de salarios deflactado por IPC, diciembre 2016 = 100 · INDEC",
-      () => dibujar("c_exp", "line", [{ label: "Salario real", data: filtra(V("salario_real")), color: "--s1" }], (v) => fNum(v))],
+    ["Ingresos y costo de vida", "sal_real", "Salario real", () => "Índice de salarios deflactado por IPC, " + notaBase() + " · INDEC",
+      () => dibujar("c_exp", "line", [{ label: "Salario real", data: baseReal(V("salario_real")), color: "--s1" }], (v) => fNum(v))],
     ["Ingresos y costo de vida", "cbt_sal", "Canasta básica total y salarios", "Variación interanual, % · INDEC",
       () => dibujar("c_exp", "line", [{ label: "Canasta básica total", data: filtra(V("cbt_ia")), color: "--s2" }, { label: "Salarios", data: filtra(V("salarios_ia")), color: "--s1" }], pct)],
     ["Ingresos y costo de vida", "cbt", "Canasta básica total (adulto, GBA)", "$ por mes · INDEC",
@@ -418,8 +420,8 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
       () => dibujar("c_exp", "line", [{ label: "UVA", data: filtra(V("uva_ia")), color: "--s1" }, { label: "Alquileres (ICL)", data: filtra(V("icl_ia")), color: "--s2" }, { label: "Inflación (IPC)", data: filtra(V("ipc_ia")), color: "--s4" }], pct)],
     ["Salarios de referencia", "sal_ref", "RIPTE y salario mínimo", "$ por mes · Secretaría de Trabajo",
       () => dibujar("c_exp", "line", [{ label: "RIPTE (trabajadores estables)", data: filtra(S("ripte")), color: "--s1" }, { label: "Salario mínimo", data: filtra(S("smvm")), color: "--s2" }], (v) => "$" + fNum(v))],
-    ["Salarios de referencia", "sal_ref_real", "RIPTE y salario mínimo reales", "Descontada la inflación, diciembre 2016 = 100",
-      () => dibujar("c_exp", "line", [{ label: "RIPTE real", data: filtra(V("ripte_real")), color: "--s1" }, { label: "Salario mínimo real", data: filtra(V("smvm_real")), color: "--s2" }, { label: "Índice de salarios real", data: filtra(V("salario_real")), color: "--s3" }], (v) => fNum(v))],
+    ["Salarios de referencia", "sal_ref_real", "RIPTE y salario mínimo reales", () => "Descontada la inflación, " + notaBase(),
+      () => dibujar("c_exp", "line", [{ label: "RIPTE real", data: baseReal(V("ripte_real")), color: "--s1" }, { label: "Salario mínimo real", data: baseReal(V("smvm_real")), color: "--s2" }, { label: "Índice de salarios real", data: baseReal(V("salario_real")), color: "--s3" }], (v) => fNum(v))],
     ["Salarios de referencia", "sal_ref_usd", "RIPTE y salario mínimo en dólares", "US$ blue por mes",
       () => dibujar("c_exp", "line", [{ label: "RIPTE", data: filtra(V("ripte_usd")), color: "--s1" }, { label: "Salario mínimo", data: filtra(V("smvm_usd")), color: "--s2" }], (v) => "US$ " + fNum(v))],
     ["Salarios de referencia", "sal_ref_cbt", "Cuántas canastas básicas paga cada salario", "Salario dividido por la canasta básica total de un adulto (GBA)",
