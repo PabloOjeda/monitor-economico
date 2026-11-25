@@ -19,18 +19,18 @@
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
-    --bg: #111111; --surface: #1a1a19; --border: #30302e;
-    --text: #f0efec; --text-2: #c3c2b7; --muted: #b3b2a8; --grid: #2a2a28;
-    --accent: #3987e5;
-    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --bg: #0a0a0a; --surface: #161615; --border: #4a4a45;
+    --text: #ffffff; --text-2: #ecebe4; --muted: #d4d3ca; --grid: #3a3a36;
+    --accent: #4ea1ff;
+    --s1: #4ea1ff; --s2: #ff7a45; --s3: #2fd69c; --s4: #ffc531; --s5: #ff8fc4; --s6: #5fd35f; --s7: #ad9fff; --s8: #ff6b6b;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #111111; --surface: #1a1a19; --border: #30302e;
-  --text: #f0efec; --text-2: #c3c2b7; --muted: #b3b2a8; --grid: #2a2a28;
-  --accent: #3987e5;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --bg: #0a0a0a; --surface: #161615; --border: #4a4a45;
+  --text: #ffffff; --text-2: #ecebe4; --muted: #d4d3ca; --grid: #3a3a36;
+  --accent: #4ea1ff;
+  --s1: #4ea1ff; --s2: #ff7a45; --s3: #2fd69c; --s4: #ffc531; --s5: #ff8fc4; --s6: #5fd35f; --s7: #ad9fff; --s8: #ff6b6b;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -56,7 +56,11 @@ h2 { font-size: 22px; margin: 30px 0 4px; letter-spacing: -0.01em; }
 .chart { position: relative; height: 400px; }
 @media (max-width: 860px) { .chart { height: 340px; } }
 .explorer { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 14px; align-items: start; }
-@media (max-width: 860px) { .explorer { grid-template-columns: 1fr; } }
+@media (max-width: 860px) {
+  .explorer { grid-template-columns: 1fr; }
+  .explorer > .card { order: -1; scroll-margin-top: 10px; }
+  .lista .titulo-movil { display: block; }
+}
 .lista { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px; }
 .lista input { width: 100%; font: inherit; font-size: 14.5px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); margin-bottom: 6px; }
 .lista details { border-top: 1px solid var(--grid); }
@@ -70,7 +74,10 @@ h2 { font-size: 22px; margin: 30px 0 4px; letter-spacing: -0.01em; }
 .lista button { display: block; width: 100%; text-align: left; font: inherit; font-size: 14px; color: var(--text); background: none; border: 0; border-radius: 6px; padding: 5px 8px 5px 14px; cursor: pointer; }
 .lista button:hover { background: var(--bg); }
 .lista button[aria-selected="true"] { background: var(--bg); box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
-.kpi[title] { cursor: help; }
+.kpi[data-dest] { cursor: pointer; transition: border-color .12s, box-shadow .12s; }
+.kpi[data-dest]:hover, .kpi[data-dest]:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); outline: none; }
+.lista .titulo-movil { display: none; font-weight: 700; font-size: 14.5px; margin: 2px 4px 8px; }
+@media (max-width: 860px) { .lista .titulo-movil { display: block; } }
 .recesion { margin-top: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; display: none; flex-wrap: wrap; gap: 8px 22px; align-items: center; cursor: pointer; }
 .recesion:hover { border-color: var(--accent); }
 .recesion .estado-r { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
@@ -133,6 +140,7 @@ footer a { color: var(--accent); }
   <p class="sec-lead">Abrí un grupo y elegí un indicador, o buscalo por nombre. En los comparativos, tocá un país en la leyenda para mostrarlo u ocultarlo; en datos del FMI la línea punteada marca proyecciones.</p>
   <div class="explorer" id="explorador">
     <div class="lista">
+      <div class="titulo-movil">Elegir otro indicador</div>
       <input id="buscar" type="search" placeholder="Buscar indicador…" aria-label="Buscar indicador" autocomplete="off">
       <div id="items"></div>
     </div>
@@ -228,7 +236,12 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
   // ---------- tarjetas
   function kpis() {
     const t = [];
-    const add = (lbl, val, sub, met) => t.push(`<div class="kpi"${met ? ` title="${met}"` : ""}><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="sub">${sub}</div></div>`);
+    const DEST = { "Actividad económica (EMAE)": "act_inf", "Inflación mensual": "inf_m", "Inflación interanual": "alim",
+      "Inflación anualizada (3 meses)": "inf_3m", "Inflación acumulada del año": "inf_anual", "Salario real": "sal_real",
+      "Desocupación": "trabajo", "Pobreza (personas)": "pobreza", "Dólar blue": "blue_real", "Brecha cambiaria": "brecha",
+      "Riesgo país": "riesgo", "Reservas del BCRA": "reservas", "Canasta básica en dólares": "cbt_usd" };
+    const add = (lbl, val, sub, met) => { const d = DEST[lbl];
+      t.push(`<div class="kpi"${met ? ` title="${met}${d ? " Tocá para ver el gráfico." : ""}"` : ""}${d ? ` data-dest="a:${d}" role="button" tabindex="0"` : ""}><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="sub">${sub}</div></div>`); };
     let [k, v] = ult(V("emae_ia"));
     add("Actividad económica (EMAE)", fPct(v, 1, true), `${per(k)} · vs. mismo mes del año anterior`, "EMAE del INDEC, serie original. Variación contra el mismo mes del año anterior.");
     [k, v] = ult(V("ipc_m"));
@@ -265,6 +278,11 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
     const pob = S("poblacion"), a = String(new Date().getFullYear());
     add("Población", pob[a] ? fNum(pob[a] / 1e6, 1) + " millones" : "s/d", `proyección INDEC ${a}`, "Proyección de población del INDEC (Censo 2022) al 1 de julio.");
     $("kpis").innerHTML = t.join("");
+    $("kpis").querySelectorAll(".kpi[data-dest]").forEach((el) => {
+      const ir = () => irA(el.dataset.dest);
+      el.onclick = ir;
+      el.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ir(); } };
+    });
     const R = D.derivados && D.derivados.recesion, Q = V("emae_trim_qq");
     if (R && Object.keys(Q).length) {
       const col = { crece: "--s3", alerta: "--s4", recesion: "--s8" }[R.estado];
@@ -276,13 +294,14 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
         <div class="det">Actividad desestacionalizada (EMAE), trimestre contra trimestre anterior. Recesión técnica: dos trimestres seguidos en caída.${km ? ` Último mes (${per(km)}): ${fPct(vm, 1, true)} contra el anterior.` : ""}</div>
         <div class="trims">${ult4.map((k) => `<span><span class="punto" style="background:${css(Q[k] < 0 ? "--s8" : "--s3")}"></span>${tq(k)}: ${fPct(Q[k], 1, true)}</span>`).join("")}</div>`;
       $("recesion").style.display = "flex";
-      $("recesion").onclick = () => { selExp = "a:recesion"; lista(); explorar(); $("explorador").scrollIntoView({ behavior: "smooth" }); };
+      $("recesion").onclick = () => irA("a:recesion");
     }
   }
 
   // ---------- gráficos
   const charts = {};
   const desde = () => +$("desde").value;
+  const oscuro = () => getComputedStyle(document.documentElement).colorScheme === "dark";
   const filtra = (o) => Object.fromEntries(Object.entries(o).filter(([k]) => +k.slice(0, 4) >= desde()));
   function base() {
     return {
@@ -331,7 +350,7 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
         datasets: series.map((s) => ({
           label: s.label, data: keys.map((k) => s.data[k] ?? null), spanGaps: true,
           borderColor: css(s.color), backgroundColor: css(s.color),
-          borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.25,
+          borderWidth: oscuro() ? 2.75 : 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.25,
           borderRadius: tipo === "bar" ? 4 : 0, maxBarThickness: 28, skipNull: !!extra.skipNull
         }))
       },
@@ -463,7 +482,7 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
         <div class="tabla-scroll"><table class="rank"><thead><tr><th>Indicador</th><th class="num">Argentina</th><th class="num">América Latina</th><th>Mejor de la región</th><th class="num">Puesto</th><th>Situación</th></tr></thead><tbody>${filas.join("")}</tbody></table></div></details>`);
     }
     $("rank").innerHTML = bloques.join("") || '<div class="card vacio" style="height:80px">Sin datos comparativos en esta actualización</div>';
-    $("rank").querySelectorAll("tr.fila").forEach((tr) => tr.onclick = () => { selExp = "m:" + tr.dataset.k; lista(); explorar(); $("explorador").scrollIntoView({ behavior: "smooth" }); });
+    $("rank").querySelectorAll("tr.fila").forEach((tr) => tr.onclick = () => irA("m:" + tr.dataset.k));
   }
 
   // ---------- explorador
@@ -474,7 +493,13 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
     ["Dólar, tasas y mercado", [["Dólar y mercado", ["Dólar y mercado"]], ["Tasas y ahorro", ["Tasas y ahorro"]]]],
   ];
   const norm = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  const abiertos = new Set();
+  let grupoAbierto = null;      // null = queda abierto solo el grupo del indicador elegido
+  function irA(id) {
+    selExp = id; grupoAbierto = null; filtroTxt = ""; $("buscar").value = "";
+    lista(); explorar();
+    const movil = window.matchMedia("(max-width: 860px)").matches;
+    (movil ? document.querySelector("#explorador > .card") : $("explorador")).scrollIntoView({ behavior: "smooth", block: "start" });
+  }
   function lista() {
     const grupos = GRUPOS.map(([g, subs]) => [g, subs.map(([t, gs]) => [t, AR.filter((x) => gs.includes(x[0])).map((x) => ["a:" + x[1], x[2]])])]);
     grupos.push(["Comparación internacional", CATS.map((c) => [c, Object.keys(M).filter((k) => (M[k].categoria || "Macroeconomía") === c).map((k) => ["m:" + k, M[k].nombre])]).filter((x) => x[1].length)]);
@@ -485,7 +510,7 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
       const n = f.reduce((a, [, its]) => a + its.length, 0);
       if (!n) continue;
       const tieneSel = f.some(([, its]) => its.some(([v]) => v === selExp));
-      const abierto = q || abiertos.has(g) || (tieneSel && !abiertos.has("cerrado:" + g));
+      const abierto = q || (grupoAbierto ? grupoAbierto === g : tieneSel);
       html += `<details data-g="${g}"${abierto ? " open" : ""}><summary>${g}<span class="n">${n}</span></summary>` +
         f.map(([t, its]) => (t && f.length + (g === "Comparación internacional" ? 1 : 0) > 1 ? `<div class="sub">${t}</div>` : "") +
           its.map(([v, nm]) => `<button data-id="${v}" aria-selected="${v === selExp}">${nm}</button>`).join("")).join("") + `</details>`;
@@ -493,9 +518,12 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
     $("items").innerHTML = html || '<div class="vacio" style="height:60px">Sin resultados</div>';
     $("items").querySelectorAll("details").forEach((d) => d.addEventListener("toggle", () => {
       const g = d.dataset.g;
-      if (d.open) { abiertos.add(g); abiertos.delete("cerrado:" + g); } else { abiertos.delete(g); abiertos.add("cerrado:" + g); }
+      if (filtroTxt.trim()) return;
+      if (d.open && grupoAbierto !== g) { grupoAbierto = g; lista(); }          // abrir uno cierra los demás
+      else if (!d.open && grupoAbierto !== "__ninguno__") { grupoAbierto = "__ninguno__"; lista(); }
     }));
-    $("items").querySelectorAll("button").forEach((b) => b.onclick = () => { selExp = b.dataset.id; lista(); explorar(); });
+    $("items").querySelectorAll("button").forEach((b) => b.onclick = () => { selExp = b.dataset.id; grupoAbierto = null; filtroTxt = ""; $("buscar").value = ""; lista(); explorar();
+      if (window.matchMedia("(max-width: 860px)").matches) document.querySelector("#explorador > .card").scrollIntoView({ behavior: "smooth", block: "start" }); });
   }
   function explorar() {
     if (charts.c_exp) { charts.c_exp.destroy(); delete charts.c_exp; }
@@ -533,7 +561,7 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
           return {
             label: p, data: anios.map((a) => m.paises[p][a] ?? null), spanGaps: true, hidden: !VISIBLES.includes(p),
             borderColor: col, backgroundColor: col,
-            borderWidth: p === "Argentina" ? 3 : 2, pointRadius: 2.5, pointHoverRadius: 5, tension: 0.2,
+            borderWidth: p === "Argentina" ? (oscuro() ? 3.5 : 3) : (oscuro() ? 2.5 : 2), pointRadius: 2.5, pointHoverRadius: 5, tension: 0.2,
             segment: { borderDash: (ctx) => proj && +anios[ctx.p1DataIndex] >= proj ? [6, 4] : undefined }
           };
         })
