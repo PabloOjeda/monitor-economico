@@ -136,12 +136,20 @@ desde = f"gte.{ANIO_INICIO - 1}"
 
 # ---------------------------------------------------------------- INDEC (API)
 def emae():
-    f = indec("estimador-mensual-de-actividad-economica-nivel-general", anio=desde,
-              order="tipo_de_indicador_descripcion,anio,mes,periodo,tipo_de_indicador")
+    todas = indec("estimador-mensual-de-actividad-economica-nivel-general", anio=desde,
+                  order="tipo_de_indicador_descripcion,anio,mes,periodo,tipo_de_indicador")
     c = lambda r: txt(r.get("tipo_de_indicador_descripcion"), r.get("tipo_de_indicador"))
-    f = una_serie([r for r in f if "original" in c(r) and "ndice" in c(r) and "var" not in c(r)], c)
+    print("  EMAE · series disponibles:", sorted({c(r) for r in todas}))
+    f = una_serie([r for r in todas if "original" in c(r) and "ndice" in c(r) and "var" not in c(r)], c)
     guardar("emae", "EMAE (actividad económica)", "Índice 2004=100", "M", "INDEC",
             promedio_por(f, lambda r: mes(r["anio"], r["mes"]), lambda r: num(r.get("valor"))))
+    # Serie desestacionalizada: es la que se usa para medir la recesión técnica (trimestre contra trimestre anterior)
+    d = una_serie([r for r in todas if "desestacional" in c(r) and "ndice" in c(r) and "var" not in c(r)], c)
+    if d:
+        guardar("emae_desest", "EMAE desestacionalizado", "Índice 2004=100", "M", "INDEC",
+                promedio_por(d, lambda r: mes(r["anio"], r["mes"]), lambda r: num(r.get("valor"))))
+    else:
+        avisos.append("EMAE: la API no trajo la serie desestacionalizada")
 
 
 def emae_sectores():
@@ -531,6 +539,24 @@ def derivar():
             D[i + "_real"] = {p: (src[p] / src[base]) / (ipc_[p] / ipc_[base]) * 100 for p in src if p in ipc_}
     D["icl_ia"] = var(ser("icl"), 12)
     D["uva_ia"] = var(ser("uva"), 12)
+    # ---- recesión técnica: EMAE desestacionalizado, promedio trimestral contra el trimestre anterior
+    des = ser("emae_desest")
+    D["emae_desest_m"] = var(des, 1)
+    trim = {}
+    for p, v in des.items():
+        trim.setdefault(f"{p[:4]}-T{(int(p[5:7]) - 1) // 3 + 1}", []).append(v)
+    trim = {k: sum(v) / 3 for k, v in sorted(trim.items()) if len(v) == 3}      # solo trimestres completos
+    ks = list(trim)
+    D["emae_trim_qq"] = {k: trim[k] / trim[a] - 1 for a, k in zip(ks, ks[1:])}
+    racha = 0
+    for k in reversed(list(D["emae_trim_qq"])):
+        if D["emae_trim_qq"][k] < 0:
+            racha += 1
+        else:
+            break
+    if D["emae_trim_qq"]:
+        D["recesion"] = {"ultimo": list(D["emae_trim_qq"])[-1], "trimestres_en_caida": racha,
+                         "estado": "recesion" if racha >= 2 else ("alerta" if racha == 1 else "crece")}
     sec = S.get("emae_sectores", {}).get("sectores", {})
     ult = None
     vs = {}

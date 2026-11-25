@@ -71,6 +71,12 @@ h2 { font-size: 22px; margin: 30px 0 4px; letter-spacing: -0.01em; }
 .lista button:hover { background: var(--bg); }
 .lista button[aria-selected="true"] { background: var(--bg); box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
 .kpi[title] { cursor: help; }
+.recesion { margin-top: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; display: none; flex-wrap: wrap; gap: 8px 22px; align-items: center; cursor: pointer; }
+.recesion:hover { border-color: var(--accent); }
+.recesion .estado-r { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.recesion .estado-r .punto { width: 13px; height: 13px; }
+.recesion .det { color: var(--text-2); font-size: 13.5px; flex: 1; min-width: 240px; }
+.recesion .trims { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
 details.metodo { margin-top: 30px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
 details.metodo > summary { cursor: pointer; padding: 13px 16px; font-weight: 700; font-size: 16px; }
 .metodo .cuerpo { padding: 0 16px 14px; font-size: 14px; color: var(--text-2); }
@@ -121,6 +127,7 @@ footer a { color: var(--accent); }
   <h2>Hoy</h2>
   <p class="sec-lead">Último dato disponible de cada indicador y su período.</p>
   <div class="kpis" id="kpis"></div>
+  <div class="recesion" id="recesion" title="Ver la evolución en el explorador"></div>
 
   <h2>Explorador de indicadores</h2>
   <p class="sec-lead">Abrí un grupo y elegí un indicador, o buscalo por nombre. En los comparativos, tocá un país en la leyenda para mostrarlo u ocultarlo; en datos del FMI la línea punteada marca proyecciones.</p>
@@ -258,6 +265,19 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
     const pob = S("poblacion"), a = String(new Date().getFullYear());
     add("Población", pob[a] ? fNum(pob[a] / 1e6, 1) + " millones" : "s/d", `proyección INDEC ${a}`, "Proyección de población del INDEC (Censo 2022) al 1 de julio.");
     $("kpis").innerHTML = t.join("");
+    const R = D.derivados && D.derivados.recesion, Q = V("emae_trim_qq");
+    if (R && Object.keys(Q).length) {
+      const col = { crece: "--s3", alerta: "--s4", recesion: "--s8" }[R.estado];
+      const txtE = { crece: "Sin recesión técnica", alerta: "Alerta: un trimestre en caída", recesion: "Recesión técnica" }[R.estado];
+      const tq = (k) => k.slice(-1) + ".º trim " + k.slice(0, 4);
+      const ult4 = Object.keys(Q).sort().slice(-4);
+      const [km, vm] = ult(V("emae_desest_m"));
+      $("recesion").innerHTML = `<div class="estado-r"><span class="punto" style="background:${css(col)}"></span>${txtE}</div>
+        <div class="det">Actividad desestacionalizada (EMAE), trimestre contra trimestre anterior. Recesión técnica: dos trimestres seguidos en caída.${km ? ` Último mes (${per(km)}): ${fPct(vm, 1, true)} contra el anterior.` : ""}</div>
+        <div class="trims">${ult4.map((k) => `<span><span class="punto" style="background:${css(Q[k] < 0 ? "--s8" : "--s3")}"></span>${tq(k)}: ${fPct(Q[k], 1, true)}</span>`).join("")}</div>`;
+      $("recesion").style.display = "flex";
+      $("recesion").onclick = () => { selExp = "a:recesion"; lista(); explorar(); $("explorador").scrollIntoView({ behavior: "smooth" }); };
+    }
   }
 
   // ---------- gráficos
@@ -312,7 +332,7 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
           label: s.label, data: keys.map((k) => s.data[k] ?? null), spanGaps: true,
           borderColor: css(s.color), backgroundColor: css(s.color),
           borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.25,
-          borderRadius: tipo === "bar" ? 4 : 0, maxBarThickness: 28
+          borderRadius: tipo === "bar" ? 4 : 0, maxBarThickness: 28, skipNull: !!extra.skipNull
         }))
       },
       options: opt
@@ -327,6 +347,12 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
   const AR = [
     ["Actividad y precios", "act_inf", "Actividad e inflación", "Variación interanual, % · INDEC",
       () => dibujar("c_exp", "line", [{ label: "Actividad (EMAE)", data: filtra(V("emae_ia")), color: "--s1" }, { label: "Inflación (IPC)", data: filtra(V("ipc_ia")), color: "--s2" }], pct)],
+    ["Actividad y precios", "recesion", "Actividad trimestral desestacionalizada (recesión técnica)", "EMAE desestacionalizado, promedio del trimestre contra el trimestre anterior, %. Rojo: caída. Dos trimestres seguidos en rojo = recesión técnica · INDEC",
+      () => { const q = Object.fromEntries(Object.entries(V("emae_trim_qq")).filter(([k]) => +k.slice(0, 4) >= desde()));
+        dibujar("c_exp", "bar", [{ label: "Crece", data: Object.fromEntries(Object.entries(q).map(([k, v]) => [k, v >= 0 ? v : null])), color: "--s3" },
+          { label: "Cae", data: Object.fromEntries(Object.entries(q).map(([k, v]) => [k, v < 0 ? v : null])), color: "--s8" }], pct1, { skipNull: true }); }],
+    ["Actividad y precios", "emae_m", "Actividad mensual desestacionalizada", "EMAE desestacionalizado, variación contra el mes anterior, % · INDEC",
+      () => dibujar("c_exp", "bar", [{ label: "Variación mensual", data: filtra(V("emae_desest_m")), color: "--s1" }], pct1)],
     ["Actividad y precios", "inf_m", "Inflación mensual", "Variación respecto del mes anterior, % · INDEC",
       () => dibujar("c_exp", "bar", [{ label: "Inflación mensual", data: filtra(V("ipc_m")), color: "--s2" }], pct1)],
     ["Actividad y precios", "inf_anual", "Inflación anual: diciembre a diciembre y promedio del año", "% · calculado con el IPC del INDEC. El Banco Mundial y el FMI usan el promedio del año.",
