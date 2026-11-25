@@ -268,12 +268,13 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
     return {
       responsive: true, maintainAspectRatio: false, animation: false,
       interaction: { mode: "index", intersect: false },
+      layout: { padding: { right: 28, left: 4, top: 4 } },
       plugins: {
         legend: { position: "top", align: "start", labels: { color: css("--text-2"), boxWidth: 12, boxHeight: 12, usePointStyle: true, pointStyle: "rectRounded", font: { size: 13 } } },
         tooltip: { backgroundColor: css("--surface"), titleColor: css("--text"), bodyColor: css("--text-2"), borderColor: css("--border"), borderWidth: 1, padding: 10 }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: css("--muted"), maxRotation: 0, autoSkipPadding: 18, font: { size: 12 } }, border: { color: css("--border") } },
+        x: { offset: true, grid: { display: false }, ticks: { color: css("--muted"), maxRotation: 0, autoSkipPadding: 18, font: { size: 12 } }, border: { color: css("--border") } },
         y: { grid: { color: css("--grid") }, ticks: { color: css("--muted"), font: { size: 12 } }, border: { display: false } }
       }
     };
