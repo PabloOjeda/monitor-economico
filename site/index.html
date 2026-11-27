@@ -266,7 +266,7 @@ const FUENTE_DATOS = "https://raw.githubusercontent.com/PabloOjeda/monitor-econo
     if (fb) add("Brecha cambiaria", fPct(ub[fb] / uo[fb] - 1), `${fb.split("-").reverse().join("/")} · vs. mayorista: ${fm ? fPct(ub[fb] / um[fm] - 1) : "s/d"}`, "Blue sobre oficial minorista del Banco Nación del mismo día. Entre paréntesis, blue sobre el último mayorista del BCRA.");
     else { [k, v] = ult(V("brecha")); add("Brecha cambiaria", fPct(v), `${per(k)} · promedio del mes`); }
     const rd = D.series.riesgo && D.series.riesgo.ultimo_diario;
-    add("Riesgo país", rd ? fNum(rd.valor) + " pb" : "s/d", rd ? rd.fecha.split("-").reverse().join("/") : "", "EMBI de JP Morgan para Argentina, último dato publicado por ArgentinaDatos (llega con un día de atraso).");
+    add("Riesgo país", rd ? fNum(rd.valor) + " pb" : "s/d", rd ? "cierre del " + rd.fecha.split("-").reverse().join("/") : "", "EMBI de JP Morgan para Argentina, último dato publicado por ArgentinaDatos (llega con un día de atraso).");
     const res = D.series.reservas && D.series.reservas.diario;
     if (res) {
       const [kr, vr] = ult(res), d = new Date(kr); d.setFullYear(d.getFullYear() - 1);
